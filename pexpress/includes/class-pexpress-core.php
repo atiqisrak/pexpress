@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Core plugin functionality
  *
@@ -14,20 +15,123 @@ if (!defined('ABSPATH')) {
 /**
  * Core plugin class
  */
-class PExpress_Core {
+class PExpress_Core
+{
 
     /**
      * Constructor
      */
-    public function __construct() {
+    public function __construct()
+    {
         $this->init();
     }
 
     /**
      * Initialize core functionality
      */
-    private function init() {
-        // Add initialization code here
+    private function init()
+    {
+        // Initialize order statuses
+        PExpress_Order_Statuses::init();
+    }
+
+    /**
+     * Get order meta value
+     *
+     * @param int    $order_id Order ID.
+     * @param string $key      Meta key.
+     * @param bool   $single   Whether to return single value.
+     * @return mixed
+     */
+    public static function get_order_meta($order_id, $key, $single = true)
+    {
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            return false;
+        }
+        return $order->get_meta($key, $single);
+    }
+
+    /**
+     * Update order meta value
+     *
+     * @param int    $order_id Order ID.
+     * @param string $key       Meta key.
+     * @param mixed  $value     Meta value.
+     * @return int|bool Meta ID on success, false on failure.
+     */
+    public static function update_order_meta($order_id, $key, $value)
+    {
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            return false;
+        }
+        $order->update_meta_data($key, $value);
+        return $order->save();
+    }
+
+    /**
+     * Get assigned delivery user ID for an order
+     *
+     * @param int $order_id Order ID.
+     * @return int|false
+     */
+    public static function get_delivery_user_id($order_id)
+    {
+        return (int) self::get_order_meta($order_id, '_polar_delivery_user_id');
+    }
+
+    /**
+     * Get assigned fridge user ID for an order
+     *
+     * @param int $order_id Order ID.
+     * @return int|false
+     */
+    public static function get_fridge_user_id($order_id)
+    {
+        return (int) self::get_order_meta($order_id, '_polar_fridge_user_id');
+    }
+
+    /**
+     * Get assigned distributor user ID for an order
+     *
+     * @param int $order_id Order ID.
+     * @return int|false
+     */
+    public static function get_distributor_user_id($order_id)
+    {
+        return (int) self::get_order_meta($order_id, '_polar_distributor_user_id');
+    }
+
+    /**
+     * Get orders assigned to a user
+     *
+     * @param int    $user_id User ID.
+     * @param string $role    Role type (delivery, fridge, distributor).
+     * @return array
+     */
+    public static function get_assigned_orders($user_id, $role = 'delivery')
+    {
+        $meta_key = '_polar_' . sanitize_key($role) . '_user_id';
+
+        $args = array(
+            'status' => 'any',
+            'limit'  => -1,
+            'meta_key' => $meta_key,
+            'meta_value' => $user_id,
+        );
+
+        return wc_get_orders($args);
+    }
+
+    /**
+     * Check if order needs assignment
+     *
+     * @param int $order_id Order ID.
+     * @return bool
+     */
+    public static function order_needs_assignment($order_id)
+    {
+        return 'yes' === self::get_order_meta($order_id, '_polar_needs_assignment');
     }
 }
-

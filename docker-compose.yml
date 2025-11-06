@@ -1,29 +1,84 @@
 version: "3.8"
 
 services:
-  wp-cli:
-    image: wordpress:cli
-    container_name: pexpress-wp-cli
-    networks:
-      - wordpress-network
-    volumes:
-      - ./pexpress:/var/www/html/wp-content/plugins/polar-express
-      - wordpress-data:/var/www/html
+  mysql:
+    image: mysql:8.0
+    container_name: wordpress-dev-db
+    restart: unless-stopped
     environment:
-      WORDPRESS_DB_HOST: ssl-wireless-db
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - wordpress-db-data:/var/lib/mysql
+    networks:
+      - wordpress-dev-network
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-prootpassword",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress-dev
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: mysql
       WORDPRESS_DB_USER: wordpress
       WORDPRESS_DB_PASSWORD: wordpress
       WORDPRESS_DB_NAME: wordpress
-    command: tail -f /dev/null
-    stdin_open: true
-    tty: true
+      WORDPRESS_DEBUG: 1
+    volumes:
+      - wordpress-data:/var/www/html
+      - ./pexpress:/var/www/html/wp-content/plugins/polar-express
+      - ../ethertech-wootp:/var/www/html/wp-content/plugins/ethertech-wootp
+    networks:
+      - wordpress-dev-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/wp-admin/install.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: wordpress-dev-phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    ports:
+      - "8082:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: rootpassword
+      UPLOAD_LIMIT: 300M
+    networks:
+      - wordpress-dev-network
 
 networks:
-  wordpress-network:
-    external: true
-    name: ssl-wireless-sms-notification_wordpress-network
+  wordpress-dev-network:
+    driver: bridge
 
 volumes:
+  wordpress-db-data:
   wordpress-data:
-    external: true
-    name: ssl-wireless-sms-notification_wordpress_data

@@ -80,9 +80,5 @@ function polar_remove_roles() {
     remove_role('polar_distributor');
 }
 
-// Register roles on activation
-register_activation_hook(PEXPRESS_PLUGIN_DIR . 'polar-express.php', 'polar_create_roles');
-
-// Remove roles on uninstall
-register_uninstall_hook(PEXPRESS_PLUGIN_DIR . 'polar-express.php', 'polar_remove_roles');
+// Note: Roles are registered via the main plugin activation hook
 

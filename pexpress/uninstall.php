@@ -11,13 +11,14 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
     exit;
 }
 
-// Perform uninstall actions here
-// Delete options, custom tables, etc.
+// Load main plugin file to access functions
+require_once plugin_dir_path(__FILE__) . 'roles.php';
 
-// Example: Delete plugin options
-// delete_option('pexpress_options');
+// Remove custom roles
+polar_remove_roles();
 
-// Example: Drop custom tables
-// global $wpdb;
-// $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}pexpress_table");
+// Clean up options if needed
+// delete_option('polar_sms_user');
+// delete_option('polar_sms_pass');
+// delete_option('polar_sms_sid');
 
