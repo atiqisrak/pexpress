@@ -301,3 +301,911 @@
     opacity: 0.5;
   }
 }
+
+/* ============================================
+   Support Dashboard Modern Styles
+   ============================================ */
+
+/* Dashboard Header - General */
+.polar-dashboard-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 16px;
+  padding: 40px 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.polar-support-dashboard .polar-dashboard-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.polar-dashboard-header::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 300px;
+  height: 300px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.polar-header-content {
+  position: relative;
+  z-index: 1;
+}
+
+.polar-dashboard-title,
+.polar-dashboard h1 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.polar-dashboard h1:not(.polar-dashboard-title) {
+  color: #1d2327;
+  margin-bottom: 32px;
+}
+
+.polar-title-icon {
+  font-size: 40px;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.polar-dashboard-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Stats Grid - General */
+.polar-stats-grid,
+.polar-dashboard .polar-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.polar-stat-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.polar-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.polar-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.polar-stat-card:hover::before {
+  opacity: 1;
+}
+
+.stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.polar-stat-card:hover .stat-card-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.stat-card-primary .stat-card-icon,
+.polar-dashboard .polar-stat-card:first-child .stat-card-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+}
+
+.stat-card-warning .stat-card-icon,
+.polar-dashboard .polar-stat-card:nth-child(2) .stat-card-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: #ffffff;
+}
+
+.stat-card-success .stat-card-icon,
+.polar-dashboard .polar-stat-card:nth-child(3) .stat-card-icon {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: #ffffff;
+}
+
+.stat-card-info .stat-card-icon,
+.polar-dashboard .polar-stat-card:nth-child(4) .stat-card-icon {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  color: #ffffff;
+}
+
+.stat-card-content {
+  flex: 1;
+}
+
+.stat-card-value,
+.polar-stat-card h3 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1d2327;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.stat-card-label,
+.polar-stat-card p {
+  font-size: 14px;
+  color: #646970;
+  margin: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Backward compatibility for stat cards without icons */
+.polar-stat-card:not(:has(.stat-card-icon)) {
+  flex-direction: column;
+  text-align: center;
+  justify-content: center;
+}
+
+.polar-stat-card:not(:has(.stat-card-icon)) h3 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1d2327;
+  margin: 0 0 8px 0;
+}
+
+.polar-stat-card:not(:has(.stat-card-icon)) p {
+  font-size: 14px;
+  color: #646970;
+  margin: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Orders Section */
+.polar-orders-section,
+.polar-tasks-section {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  margin-top: 32px;
+}
+
+.polar-section-header {
+  margin-bottom: 24px;
+}
+
+.polar-section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1d2327;
+  margin: 0;
+}
+
+/* Filters */
+.polar-filters-wrapper {
+  margin-bottom: 24px;
+}
+
+.polar-filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.polar-filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.polar-filter-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #646970;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.polar-filter-label svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.7;
+}
+
+.polar-search-group {
+  flex: 2;
+  min-width: 250px;
+}
+
+.polar-select,
+.polar-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #ffffff;
+  color: #2c3338;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.polar-select:focus,
+.polar-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  outline: none;
+}
+
+/* Order Items */
+.polar-support-dashboard .polar-orders-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 24px;
+}
+
+.polar-support-dashboard .polar-order-item {
+  background: #ffffff;
+  border: 2px solid #f0f0f1;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.polar-support-dashboard .polar-order-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.polar-support-dashboard .polar-order-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: #667eea;
+}
+
+.polar-support-dashboard .polar-order-item:hover::before {
+  transform: scaleY(1);
+}
+
+.polar-support-dashboard .order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f0f1;
+  gap: 12px;
+}
+
+.order-header-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.order-title {
+  margin: 0;
+}
+
+.order-link {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.2s ease;
+}
+
+.order-link:hover {
+  color: #667eea;
+}
+
+.order-id-badge {
+  display: inline-block;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1d2327;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.order-link:hover .order-id-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.order-date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #646970;
+  font-weight: 500;
+}
+
+.order-date-badge svg {
+  opacity: 0.6;
+}
+
+.polar-support-dashboard .order-status {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Order Details */
+.polar-support-dashboard .order-details {
+  margin-bottom: 20px;
+}
+
+.order-detail-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.order-detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.detail-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #646970;
+  transition: all 0.2s ease;
+}
+
+.polar-order-item:hover .detail-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+.detail-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8c8f94;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d2327;
+}
+
+.detail-link {
+  color: #2271b1;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.detail-link:hover {
+  color: #667eea;
+}
+
+.order-total {
+  color: #00a32a;
+  font-size: 16px;
+}
+
+/* Assignment Info */
+.assignment-info {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.assignment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #646970;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.assignment-header svg {
+  width: 14px;
+  height: 14px;
+}
+
+.assignment-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.assignment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  color: #646970;
+}
+
+.badge-delivery {
+  border-color: #4facfe;
+  color: #4facfe;
+  background: rgba(79, 172, 254, 0.1);
+}
+
+.badge-fridge {
+  border-color: #43e97b;
+  color: #43e97b;
+  background: rgba(67, 233, 123, 0.1);
+}
+
+.badge-distributor {
+  border-color: #f5576c;
+  color: #f5576c;
+  background: rgba(245, 87, 108, 0.1);
+}
+
+.assignment-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* Order Actions */
+.polar-support-dashboard .order-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px solid #f0f0f1;
+}
+
+.polar-support-dashboard .polar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.polar-support-dashboard .polar-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.polar-support-dashboard .polar-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  color: #ffffff;
+}
+
+.polar-support-dashboard .polar-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Empty State */
+.polar-support-dashboard .polar-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  border-radius: 16px;
+  border: 2px dashed #d0d0d0;
+}
+
+.empty-state-icon {
+  margin: 0 auto 20px;
+  width: 64px;
+  height: 64px;
+  color: #8c8f94;
+  opacity: 0.5;
+}
+
+.polar-empty-state h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d2327;
+  margin: 0 0 8px 0;
+}
+
+.polar-empty-state p {
+  font-size: 14px;
+  color: #646970;
+  margin: 0;
+}
+
+/* Status Colors */
+.polar-support-dashboard .order-status.status-processing,
+.polar-support-dashboard .order-status.status-wc-processing {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+  color: #856404;
+}
+
+.polar-support-dashboard .order-status.status-completed,
+.polar-support-dashboard .order-status.status-wc-completed {
+  background: linear-gradient(135deg, #d1e7dd 0%, #a3d9b1 100%);
+  color: #0f5132;
+}
+
+.polar-support-dashboard .order-status.status-wc-polar-out,
+.polar-support-dashboard .order-status.status-wc-polar-delivered {
+  background: linear-gradient(135deg, #cfe2ff 0%, #9ec5fe 100%);
+  color: #084298;
+}
+
+.polar-support-dashboard .order-status.status-pending,
+.polar-support-dashboard .order-status.status-wc-pending {
+  background: linear-gradient(135deg, #f0f0f1 0%, #d0d0d0 100%);
+  color: #50575e;
+}
+
+.polar-support-dashboard .order-status.status-cancelled,
+.polar-support-dashboard .order-status.status-wc-cancelled {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c2c7 100%);
+  color: #842029;
+}
+
+.polar-support-dashboard .order-status.status-refunded,
+.polar-support-dashboard .order-status.status-wc-refunded {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+  color: #856404;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .polar-support-dashboard .polar-orders-list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .polar-support-dashboard .polar-dashboard-header {
+    padding: 32px 24px;
+    margin-bottom: 24px;
+  }
+
+  .polar-dashboard-title {
+    font-size: 28px;
+  }
+
+  .polar-title-icon {
+    font-size: 32px;
+  }
+
+  .polar-dashboard-subtitle {
+    font-size: 14px;
+  }
+
+  .polar-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .polar-stat-card {
+    padding: 20px;
+  }
+
+  .stat-card-value {
+    font-size: 28px;
+  }
+
+  .polar-orders-section {
+    padding: 24px 20px;
+  }
+
+  .polar-support-dashboard .polar-orders-list {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .polar-support-dashboard .polar-order-item {
+    padding: 20px;
+  }
+
+  .polar-filters {
+    flex-direction: column;
+  }
+
+  .polar-filter-group,
+  .polar-search-group {
+    min-width: 100%;
+  }
+
+  .order-detail-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .order-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-header-left {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .polar-support-dashboard {
+    padding: 12px;
+  }
+
+  .polar-support-dashboard .polar-dashboard-header {
+    padding: 24px 20px;
+    border-radius: 12px;
+  }
+
+  .polar-dashboard-title {
+    font-size: 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .polar-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .polar-stat-card {
+    flex-direction: row;
+  }
+
+  .stat-card-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-card-value {
+    font-size: 24px;
+  }
+
+  .polar-orders-section {
+    padding: 20px 16px;
+    border-radius: 12px;
+  }
+
+  .polar-section-title {
+    font-size: 20px;
+  }
+
+  .polar-support-dashboard .polar-order-item {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .order-id-badge {
+    font-size: 16px;
+    padding: 4px 10px;
+  }
+
+  .detail-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .assignment-badges {
+    flex-direction: column;
+  }
+
+  .assignment-badge {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Tabs */
+.polar-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #f0f0f1;
+  padding-bottom: 0;
+}
+
+.polar-tab {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: #646970;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  bottom: -2px;
+}
+
+.polar-tab:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.polar-tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.polar-tab-content {
+  display: none;
+}
+
+.polar-tab-content.active {
+  display: block;
+}
+
+/* Task Items */
+.polar-tasks-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 24px;
+}
+
+.polar-task-item {
+  background: #ffffff;
+  border: 2px solid #f0f0f1;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.polar-task-item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.polar-task-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: #667eea;
+}
+
+.polar-task-item:hover::before {
+  transform: scaleY(1);
+}
+
+.polar-task-item .task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f0f1;
+  gap: 12px;
+}
+
+.polar-task-item .task-details {
+  margin-bottom: 20px;
+}
+
+.order-detail-full {
+  grid-column: 1 / -1;
+}
+
+/* Dashboard Specific Header Colors */
+.polar-delivery-dashboard .polar-dashboard-header {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.polar-fridge-dashboard .polar-dashboard-header {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.polar-distributor-dashboard .polar-dashboard-header {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.polar-hr-dashboard .polar-dashboard-header {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}

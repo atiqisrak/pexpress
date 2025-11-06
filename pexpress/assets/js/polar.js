@@ -13,6 +13,8 @@
         initHeartbeat();
         initAssignmentForms();
         initStatusUpdateForms();
+        initSupportDashboardFilters();
+        initTabs();
     });
 
     /**
@@ -145,6 +147,98 @@
                     $button.prop('disabled', false).text($button.data('original-text') || 'Update');
                 }
             });
+        });
+    }
+
+    /**
+     * Initialize tabs functionality
+     */
+    function initTabs() {
+        $('.polar-tab').on('click', function () {
+            var $tab = $(this);
+            var tabId = $tab.data('tab');
+            var $tabs = $tab.closest('.polar-tabs').find('.polar-tab');
+            var $contents = $tab.closest('.polar-tasks-section, .polar-orders-section').find('.polar-tab-content');
+
+            // Remove active class from all tabs and contents
+            $tabs.removeClass('active');
+            $contents.removeClass('active');
+
+            // Add active class to clicked tab and corresponding content
+            $tab.addClass('active');
+            $('#tab-' + tabId).addClass('active');
+        });
+    }
+
+    /**
+     * Initialize Support Dashboard filters and search
+     */
+    function initSupportDashboardFilters() {
+        var $statusFilter = $('#polar-status-filter');
+        var $searchInput = $('#polar-search');
+        var $ordersList = $('#polar-support-orders');
+
+        if ($statusFilter.length === 0 || $searchInput.length === 0 || $ordersList.length === 0) {
+            return;
+        }
+
+        function filterOrders() {
+            var statusValue = $statusFilter.val();
+            var searchValue = $searchInput.val().toLowerCase().trim();
+            var $orders = $ordersList.find('.polar-order-item');
+            var visibleCount = 0;
+
+            $orders.each(function () {
+                var $order = $(this);
+                var orderStatus = $order.data('status') || '';
+                var orderId = $order.data('order-id') || '';
+                var orderText = $order.text().toLowerCase();
+                var customerName = $order.find('.customer-name').text().toLowerCase();
+                var phoneNumber = $order.find('.phone-number').text().toLowerCase();
+
+                var statusMatch = !statusValue || orderStatus === statusValue || orderStatus === 'wc-' + statusValue;
+                var searchMatch = !searchValue ||
+                    orderText.indexOf(searchValue) !== -1 ||
+                    orderId.toString().indexOf(searchValue) !== -1 ||
+                    customerName.indexOf(searchValue) !== -1 ||
+                    phoneNumber.indexOf(searchValue) !== -1;
+
+                if (statusMatch && searchMatch) {
+                    $order.fadeIn(200);
+                    visibleCount++;
+                } else {
+                    $order.fadeOut(200);
+                }
+            });
+
+            // Show empty state if no orders visible
+            var $emptyState = $ordersList.find('.polar-empty-state');
+            if (visibleCount === 0 && $orders.length > 0) {
+                if ($emptyState.length === 0) {
+                    $ordersList.append(
+                        '<div class="polar-empty-state">' +
+                        '<div class="empty-state-icon">' +
+                        '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                        '<path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                        '</svg>' +
+                        '</div>' +
+                        '<h3>No orders found</h3>' +
+                        '<p>Try adjusting your filters or search terms.</p>' +
+                        '</div>'
+                    );
+                }
+                $emptyState.fadeIn(200);
+            } else {
+                $emptyState.fadeOut(200);
+            }
+        }
+
+        // Bind events
+        $statusFilter.on('change', filterOrders);
+        $searchInput.on('input', function () {
+            clearTimeout($searchInput.data('timeout'));
+            var timeout = setTimeout(filterOrders, 300);
+            $searchInput.data('timeout', timeout);
         });
     }
 
