@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+*.md
+LICENSE
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules
+vendor
+composer.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Build files
+dist
+build
+*.zip
+release/
+
+# Testing
+phpunit.xml
+.phpunit.result.cache
+coverage/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+

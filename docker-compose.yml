@@ -1,0 +1,29 @@
+version: "3.8"
+
+services:
+  wp-cli:
+    image: wordpress:cli
+    container_name: pexpress-wp-cli
+    networks:
+      - wordpress-network
+    volumes:
+      - ./pexpress:/var/www/html/wp-content/plugins/polar-express
+      - wordpress-data:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: ssl-wireless-db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    command: tail -f /dev/null
+    stdin_open: true
+    tty: true
+
+networks:
+  wordpress-network:
+    external: true
+    name: ssl-wireless-sms-notification_wordpress-network
+
+volumes:
+  wordpress-data:
+    external: true
+    name: ssl-wireless-sms-notification_wordpress_data
