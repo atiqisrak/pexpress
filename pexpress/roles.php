@@ -24,6 +24,7 @@ function polar_create_roles() {
             'edit_shop_orders'      => true,
             'read_shop_order'        => true,
             'publish_shop_orders'   => true,
+            'delete_shop_orders'     => true,
         )
     );
 

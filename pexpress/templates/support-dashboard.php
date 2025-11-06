@@ -12,16 +12,21 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Ensure $recent_orders is always an array
+if (!is_array($recent_orders)) {
+    $recent_orders = array();
+}
+
 // Calculate stats
 $total_orders = count($recent_orders);
 $processing_count = count(array_filter($recent_orders, function ($o) {
-    return $o->get_status() === 'processing';
+    return $o && is_a($o, 'WC_Order') && $o->get_status() === 'processing';
 }));
 $completed_count = count(array_filter($recent_orders, function ($o) {
-    return $o->get_status() === 'completed';
+    return $o && is_a($o, 'WC_Order') && $o->get_status() === 'completed';
 }));
 $delivery_count = count(array_filter($recent_orders, function ($o) {
-    return in_array($o->get_status(), array('wc-polar-out', 'wc-polar-delivered'));
+    return $o && is_a($o, 'WC_Order') && in_array($o->get_status(), array('wc-polar-out', 'wc-polar-delivered'));
 }));
 ?>
 
@@ -101,12 +106,19 @@ $delivery_count = count(array_filter($recent_orders, function ($o) {
                         <option value=""><?php esc_html_e('All Statuses', 'pexpress'); ?></option>
                         <?php
                         $statuses = wc_get_order_statuses();
-                        foreach ($statuses as $status_key => $status_label) :
+                        if (is_array($statuses)) {
+                            foreach ($statuses as $status_key => $status_label) :
+                                if (empty($status_key) || empty($status_label)) {
+                                    continue;
+                                }
                         ?>
                             <option value="<?php echo esc_attr($status_key); ?>">
                                 <?php echo esc_html($status_label); ?>
                             </option>
-                        <?php endforeach; ?>
+                        <?php 
+                            endforeach;
+                        }
+                        ?>
                     </select>
                 </div>
                 <div class="polar-filter-group polar-search-group">
@@ -124,17 +136,43 @@ $delivery_count = count(array_filter($recent_orders, function ($o) {
         <div class="polar-orders-list" id="polar-support-orders">
             <?php if (!empty($recent_orders)) : ?>
                 <?php foreach ($recent_orders as $order) :
+                    // Skip invalid orders
+                    if (!$order || !is_a($order, 'WC_Order')) {
+                        continue;
+                    }
+                    
                     $order_id = $order->get_id();
-                    $order_status = $order->get_status();
+                    $order_status = $order->get_status() ?: '';
                     $delivery_id = PExpress_Core::get_delivery_user_id($order_id);
                     $fridge_id = PExpress_Core::get_fridge_user_id($order_id);
                     $distributor_id = PExpress_Core::get_distributor_user_id($order_id);
+                    
+                    // Get order date safely
+                    $order_date = '';
+                    $date_created = $order->get_date_created();
+                    if ($date_created) {
+                        $order_date = $date_created->date_i18n('M d, Y') ?: '';
+                    }
+                    
+                    // Get billing info safely
+                    $billing_email = $order->get_billing_email() ?: '';
+                    $billing_phone = $order->get_billing_phone() ?: '';
+                    
+                    // Get order status name safely
+                    $order_status_name = '';
+                    if (!empty($order_status)) {
+                        $status_name = wc_get_order_status_name($order_status);
+                        $order_status_name = $status_name ?: $order_status;
+                    }
+                    
+                    // Get formatted order total safely
+                    $formatted_total = $order->get_formatted_order_total() ?: '';
                 ?>
                     <div class="polar-order-item" data-order-id="<?php echo esc_attr($order_id); ?>" data-status="<?php echo esc_attr($order_status); ?>">
                         <div class="order-header">
                             <div class="order-header-left">
                                 <h4 class="order-title">
-                                    <a href="<?php echo esc_url(admin_url('post.php?post=' . $order_id . '&action=edit')); ?>" target="_blank" class="order-link">
+                                    <a href="<?php echo esc_url(admin_url('admin.php?page=polar-express-order-edit&order_id=' . $order_id)); ?>" class="order-link">
                                         <span class="order-id-badge">#<?php echo esc_html($order_id); ?></span>
                                     </a>
                                 </h4>
@@ -142,11 +180,11 @@ $delivery_count = count(array_filter($recent_orders, function ($o) {
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     </svg>
-                                    <?php echo esc_html($order->get_date_created()->date_i18n('M d, Y')); ?>
+                                    <?php echo esc_html($order_date); ?>
                                 </span>
                             </div>
                             <span class="order-status status-<?php echo esc_attr($order_status); ?>">
-                                <?php echo esc_html(wc_get_order_status_name($order_status)); ?>
+                                <?php echo esc_html($order_status_name); ?>
                             </span>
                         </div>
                         <div class="order-details">
@@ -171,9 +209,13 @@ $delivery_count = count(array_filter($recent_orders, function ($o) {
                                     </span>
                                     <div class="detail-content">
                                         <span class="detail-label"><?php esc_html_e('Email', 'pexpress'); ?></span>
-                                        <a href="mailto:<?php echo esc_attr($order->get_billing_email()); ?>" class="detail-value detail-link">
-                                            <?php echo esc_html($order->get_billing_email()); ?>
-                                        </a>
+                                        <?php if (!empty($billing_email)) : ?>
+                                            <a href="mailto:<?php echo esc_attr($billing_email); ?>" class="detail-value detail-link">
+                                                <?php echo esc_html($billing_email); ?>
+                                            </a>
+                                        <?php else : ?>
+                                            <span class="detail-value"><?php esc_html_e('N/A', 'pexpress'); ?></span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -186,9 +228,13 @@ $delivery_count = count(array_filter($recent_orders, function ($o) {
                                     </span>
                                     <div class="detail-content">
                                         <span class="detail-label"><?php esc_html_e('Phone', 'pexpress'); ?></span>
-                                        <a href="tel:<?php echo esc_attr($order->get_billing_phone()); ?>" class="detail-value detail-link phone-number">
-                                            <?php echo esc_html($order->get_billing_phone()); ?>
-                                        </a>
+                                        <?php if (!empty($billing_phone)) : ?>
+                                            <a href="tel:<?php echo esc_attr($billing_phone); ?>" class="detail-value detail-link phone-number">
+                                                <?php echo esc_html($billing_phone); ?>
+                                            </a>
+                                        <?php else : ?>
+                                            <span class="detail-value"><?php esc_html_e('N/A', 'pexpress'); ?></span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="order-detail-item">
@@ -201,7 +247,7 @@ $delivery_count = count(array_filter($recent_orders, function ($o) {
                                     </span>
                                     <div class="detail-content">
                                         <span class="detail-label"><?php esc_html_e('Total', 'pexpress'); ?></span>
-                                        <span class="detail-value order-total"><?php echo wp_kses_post($order->get_formatted_order_total()); ?></span>
+                                        <span class="detail-value order-total"><?php echo wp_kses_post($formatted_total); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -214,40 +260,55 @@ $delivery_count = count(array_filter($recent_orders, function ($o) {
                                         <span><?php esc_html_e('Assignments', 'pexpress'); ?></span>
                                     </div>
                                     <div class="assignment-badges">
-                                        <?php if ($delivery_id) : ?>
+                                        <?php if ($delivery_id) : 
+                                            $delivery_user = get_userdata($delivery_id);
+                                            if ($delivery_user) :
+                                        ?>
                                             <span class="assignment-badge badge-delivery">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M5 13L12 20L19 13M12 4V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                <?php esc_html_e('Delivery:', 'pexpress'); ?> <?php echo esc_html(get_userdata($delivery_id)->display_name); ?>
+                                                <?php esc_html_e('Delivery:', 'pexpress'); ?> <?php echo esc_html($delivery_user->display_name); ?>
                                             </span>
-                                        <?php endif; ?>
-                                        <?php if ($fridge_id) : ?>
+                                        <?php 
+                                            endif;
+                                        endif; ?>
+                                        <?php if ($fridge_id) : 
+                                            $fridge_user = get_userdata($fridge_id);
+                                            if ($fridge_user) :
+                                        ?>
                                             <span class="assignment-badge badge-fridge">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M5 13L12 20L19 13M12 4V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                <?php esc_html_e('Fridge:', 'pexpress'); ?> <?php echo esc_html(get_userdata($fridge_id)->display_name); ?>
+                                                <?php esc_html_e('Fridge:', 'pexpress'); ?> <?php echo esc_html($fridge_user->display_name); ?>
                                             </span>
-                                        <?php endif; ?>
-                                        <?php if ($distributor_id) : ?>
+                                        <?php 
+                                            endif;
+                                        endif; ?>
+                                        <?php if ($distributor_id) : 
+                                            $distributor_user = get_userdata($distributor_id);
+                                            if ($distributor_user) :
+                                        ?>
                                             <span class="assignment-badge badge-distributor">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                     <path d="M5 13L12 20L19 13M12 4V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                                 </svg>
-                                                <?php esc_html_e('Distributor:', 'pexpress'); ?> <?php echo esc_html(get_userdata($distributor_id)->display_name); ?>
+                                                <?php esc_html_e('Distributor:', 'pexpress'); ?> <?php echo esc_html($distributor_user->display_name); ?>
                                             </span>
-                                        <?php endif; ?>
+                                        <?php 
+                                            endif;
+                                        endif; ?>
                                     </div>
                                 </div>
                             <?php endif; ?>
                         </div>
                         <div class="order-actions">
-                            <a href="<?php echo esc_url(admin_url('post.php?post=' . $order_id . '&action=edit')); ?>" class="polar-btn polar-btn-primary" target="_blank">
+                            <a href="<?php echo esc_url(admin_url('admin.php?page=polar-express-order-edit&order_id=' . $order_id)); ?>" class="polar-btn polar-btn-primary">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
-                                <?php esc_html_e('View/Edit Order', 'pexpress'); ?>
+                                <?php esc_html_e('Edit Order', 'pexpress'); ?>
                             </a>
                         </div>
                     </div>

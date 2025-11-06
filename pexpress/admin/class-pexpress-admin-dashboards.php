@@ -140,6 +140,11 @@ class PExpress_Admin_Dashboards
             'order' => 'DESC',
         ));
 
+        // Ensure $recent_orders is always an array
+        if (!is_array($recent_orders)) {
+            $recent_orders = array();
+        }
+
         include PEXPRESS_PLUGIN_DIR . 'templates/support-dashboard.php';
     }
 }

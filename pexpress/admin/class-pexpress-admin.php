@@ -44,12 +44,14 @@ class PExpress_Admin
         require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin-dashboards.php';
         require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin-roles.php';
         require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin-pages.php';
+        require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin-order-manipulation.php';
 
         $this->modules['menus'] = new PExpress_Admin_Menus();
         $this->modules['settings'] = new PExpress_Admin_Settings();
         $this->modules['dashboards'] = new PExpress_Admin_Dashboards();
         $this->modules['roles'] = new PExpress_Admin_Roles();
         $this->modules['pages'] = new PExpress_Admin_Pages();
+        $this->modules['order_manipulation'] = new PExpress_Admin_Order_Manipulation();
     }
 
     /**

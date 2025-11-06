@@ -239,9 +239,14 @@ class PExpress
      */
     public function ajax_assign_order()
     {
+        // Prevent any output before headers
+        if (ob_get_level()) {
+            ob_clean();
+        }
+
         // Verify nonce
         $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
-        if (!$order_id || !wp_verify_nonce($_POST['polar_assign_nonce'], 'polar_assign_' . $order_id)) {
+        if (!$order_id || !isset($_POST['polar_assign_nonce']) || !wp_verify_nonce($_POST['polar_assign_nonce'], 'polar_assign_' . $order_id)) {
             wp_send_json_error(array('message' => __('Security check failed.', 'pexpress')));
         }
 
@@ -300,6 +305,11 @@ class PExpress
      */
     public function ajax_update_order_status()
     {
+        // Prevent any output before headers
+        if (ob_get_level()) {
+            ob_clean();
+        }
+
         // Verify nonce
         $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
         $nonce_key = 'polar_status_nonce';
@@ -327,6 +337,11 @@ class PExpress
         }
 
         $new_status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : '';
+
+        // Validate status is not empty
+        if (empty($new_status)) {
+            wp_send_json_error(array('message' => __('Status is required.', 'pexpress')));
+        }
 
         // Validate status and permissions
         $allowed_statuses = array('polar-out', 'polar-delivered', 'fridge-collected', 'fulfilled');
@@ -357,7 +372,8 @@ class PExpress
         );
 
         $wc_status = isset($status_map[$new_status]) ? $status_map[$new_status] : $new_status;
-        $order->update_status($wc_status, sprintf(__('Status updated by %s.', 'pexpress'), $user->display_name));
+        $display_name = $user->display_name ?: $user->user_login ?: __('User', 'pexpress');
+        $order->update_status($wc_status, sprintf(__('Status updated by %s.', 'pexpress'), $display_name));
 
         wp_send_json_success(array('message' => __('Status updated successfully.', 'pexpress')));
     }

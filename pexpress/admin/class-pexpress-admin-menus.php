@@ -121,6 +121,18 @@ class PExpress_Admin_Menus
             );
         }
 
+        // Order Edit (for Support and HR)
+        if (in_array('polar_support', $current_user->roles) || in_array('polar_hr', $current_user->roles) || current_user_can('edit_shop_orders')) {
+            add_submenu_page(
+                null, // Hidden from menu
+                __('Edit Order', 'pexpress'),
+                __('Edit Order', 'pexpress'),
+                'edit_shop_orders',
+                'polar-express-order-edit',
+                array($this, 'render_order_edit_page')
+            );
+        }
+
         // Settings (HR and Shop Managers only)
         if (in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) {
             add_submenu_page(
@@ -228,5 +240,14 @@ class PExpress_Admin_Menus
     {
         $pages = new PExpress_Admin_Pages();
         $pages->render_changelog_page();
+    }
+
+    /**
+     * Render Order Edit page
+     */
+    public function render_order_edit_page()
+    {
+        $order_manipulation = new PExpress_Admin_Order_Manipulation();
+        $order_manipulation->render_order_edit_page();
     }
 }

@@ -151,8 +151,8 @@ class PExpress_Core
             return '';
         }
 
-        $first_name = $order->get_billing_first_name();
-        $last_name = $order->get_billing_last_name();
+        $first_name = $order->get_billing_first_name() ?: '';
+        $last_name = $order->get_billing_last_name() ?: '';
 
         $name = trim($first_name . ' ' . $last_name);
 
@@ -161,15 +161,17 @@ class PExpress_Core
             $customer_id = $order->get_customer_id();
             if ($customer_id) {
                 $customer = new WC_Customer($customer_id);
-                $name = $customer->get_display_name();
+                $display_name = $customer->get_display_name();
+                $name = $display_name ?: '';
             }
         }
 
         // Final fallback
         if (empty($name)) {
-            $name = $order->get_billing_company() ?: __('Guest', 'pexpress');
+            $company = $order->get_billing_company();
+            $name = $company ?: __('Guest', 'pexpress');
         }
 
-        return $name;
+        return $name ?: __('Guest', 'pexpress');
     }
 }

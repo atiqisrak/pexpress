@@ -1,0 +1,399 @@
+/* Custom Order Edit Page Styles */
+
+.polar-order-edit-page {
+    max-width: 1400px;
+    margin: 20px auto;
+}
+
+.polar-order-edit-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.polar-page-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 0;
+}
+
+.polar-back-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: #2271b1;
+}
+
+.polar-back-link:hover {
+    color: #135e96;
+}
+
+.order-id-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: #2271b1;
+    color: #fff;
+    border-radius: 3px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.polar-order-edit-content {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 20px;
+}
+
+.polar-order-main {
+    min-width: 0;
+}
+
+.polar-order-sidebar {
+    min-width: 0;
+}
+
+.polar-order-section {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    margin-bottom: 20px;
+    padding: 20px;
+}
+
+.polar-order-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.polar-order-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.polar-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.polar-info-item label {
+    font-weight: 600;
+    color: #666;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.polar-order-items-table-wrapper {
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.polar-order-items-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.polar-order-items-table th {
+    background: #f9f9f9;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+}
+
+.polar-order-items-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.polar-order-items-table .column-actions {
+    width: 120px;
+}
+
+.polar-item-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.polar-item-actions .button {
+    padding: 4px 8px;
+    min-height: auto;
+    line-height: 1.5;
+}
+
+.polar-item-actions .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+.polar-assignments {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.polar-assignment-item {
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.polar-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.polar-log-entry {
+    padding: 12px;
+    background: #f9f9f9;
+    border-left: 3px solid #ddd;
+    border-radius: 4px;
+}
+
+.polar-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.polar-log-time {
+    font-size: 12px;
+    color: #666;
+}
+
+.polar-log-user {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 8px;
+}
+
+/* Order Manipulation Styles */
+
+.polar-order-manipulation-wrapper {
+    margin: 20px 0;
+    padding: 15px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.polar-order-manipulation-wrapper h3 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.polar-add-item-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.polar-add-item-section h4 {
+    margin-top: 0;
+}
+
+.polar-add-item-form {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.polar-add-item-form .polar-product-select {
+    flex: 1;
+    min-width: 200px;
+}
+
+.polar-add-item-form #polar-item-quantity {
+    width: 100px;
+    padding: 6px 8px;
+}
+
+.polar-add-item-form .polar-add-item-btn {
+    white-space: nowrap;
+}
+
+.polar-modification-history {
+    margin-top: 20px;
+}
+
+.polar-modification-history h4 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.polar-toggle-history {
+    font-size: 16px;
+    color: #666;
+    transition: transform 0.2s;
+}
+
+.polar-history-content {
+    margin-top: 15px;
+}
+
+.polar-history-content table {
+    margin-top: 10px;
+}
+
+.polar-log-entry {
+    transition: background-color 0.2s;
+}
+
+.polar-log-entry:hover {
+    background-color: #f5f5f5;
+}
+
+.polar-action-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.polar-action-item_added {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.polar-action-item_removed {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.polar-action-item_updated,
+.polar-action-quantity_changed,
+.polar-action-price_changed {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.polar-action-item_replaced {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.polar-log-details {
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.polar-log-details strong {
+    display: inline-block;
+    min-width: 50px;
+}
+
+/* Inline edit controls */
+.polar-edit-quantity,
+.polar-edit-price {
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+/* Mobile responsive */
+@media screen and (max-width: 782px) {
+    .polar-order-edit-content {
+        grid-template-columns: 1fr;
+    }
+
+    .polar-order-sidebar {
+        order: -1;
+    }
+
+    .polar-order-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .polar-add-item-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .polar-add-item-form .polar-product-select,
+    .polar-add-item-form #polar-item-quantity {
+        width: 100%;
+    }
+
+    .polar-order-items-table-wrapper {
+        overflow-x: scroll;
+    }
+
+    .polar-order-items-table {
+        min-width: 600px;
+    }
+
+    .polar-history-content table {
+        font-size: 12px;
+    }
+
+    .polar-history-content th,
+    .polar-history-content td {
+        padding: 8px 4px;
+    }
+
+    .polar-item-actions {
+        flex-direction: column;
+    }
+
+    .polar-item-actions .button {
+        width: 100%;
+    }
+}
+
+/* Integration with WooCommerce order items table */
+.woocommerce_order_items_wrapper .order_item .polar-item-actions {
+    display: inline-flex;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.woocommerce_order_items_wrapper .order_item .polar-item-actions button {
+    padding: 2px 8px;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* Loading state */
+.polar-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.polar-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+

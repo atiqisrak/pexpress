@@ -148,6 +148,11 @@ function polar_support_dashboard_shortcode($atts)
         'order' => 'DESC',
     ));
 
+    // Ensure $recent_orders is always an array
+    if (!is_array($recent_orders)) {
+        $recent_orders = array();
+    }
+
     ob_start();
     include PEXPRESS_PLUGIN_DIR . 'templates/support-dashboard.php';
     return ob_get_clean();
