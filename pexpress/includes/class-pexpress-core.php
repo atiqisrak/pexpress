@@ -134,4 +134,42 @@ class PExpress_Core
     {
         return 'yes' === self::get_order_meta($order_id, '_polar_needs_assignment');
     }
+
+    /**
+     * Get billing name for an order
+     *
+     * @param WC_Order|int $order Order object or order ID.
+     * @return string
+     */
+    public static function get_billing_name($order)
+    {
+        if (is_numeric($order)) {
+            $order = wc_get_order($order);
+        }
+
+        if (!$order || !is_a($order, 'WC_Order')) {
+            return '';
+        }
+
+        $first_name = $order->get_billing_first_name();
+        $last_name = $order->get_billing_last_name();
+
+        $name = trim($first_name . ' ' . $last_name);
+
+        // Fallback to customer name if billing name is empty
+        if (empty($name)) {
+            $customer_id = $order->get_customer_id();
+            if ($customer_id) {
+                $customer = new WC_Customer($customer_id);
+                $name = $customer->get_display_name();
+            }
+        }
+
+        // Final fallback
+        if (empty($name)) {
+            $name = $order->get_billing_company() ?: __('Guest', 'pexpress');
+        }
+
+        return $name;
+    }
 }
