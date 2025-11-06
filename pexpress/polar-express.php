@@ -4,7 +4,7 @@
  * Plugin Name: Polar Express
  * Plugin URI: https://github.com/atiqisrak/pexpress
  * Description: Custom WordPress extension designed to enhance manual order processing and delivery workflows for Polar's bulk ice cream service.
- * Version: 1.0.0
+ * Version: 1.0.4
  * Author: Atiq Israk
  * Author URI: https://ethertech.ltd/
  * License: GPL v3 or later
@@ -31,7 +31,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('PEXPRESS_VERSION', '1.0.0');
+define('PEXPRESS_VERSION', '1.0.4');
 define('PEXPRESS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('PEXPRESS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('PEXPRESS_PLUGIN_BASENAME', plugin_basename(__FILE__));

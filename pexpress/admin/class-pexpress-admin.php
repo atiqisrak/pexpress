@@ -167,6 +167,18 @@ class PExpress_Admin
                 array($this, 'render_setup_guideline_page')
             );
         }
+
+        // Changelog (HR and Shop Managers only)
+        if (in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) {
+            add_submenu_page(
+                'polar-express',
+                __('Changelog', 'pexpress'),
+                __('Changelog', 'pexpress'),
+                'manage_woocommerce',
+                'polar-express-changelog',
+                array($this, 'render_changelog_page')
+            );
+        }
     }
 
     /**
@@ -1472,6 +1484,298 @@ class PExpress_Admin
                 });
             });
         </script>
+    <?php
+    }
+
+    /**
+     * Render Changelog page
+     */
+    public function render_changelog_page()
+    {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(__('You do not have permission to access this page.', 'pexpress'));
+        }
+
+        $changelog = array(
+            '1.0.4' => array(
+                'date' => '2024-12-19',
+                'added' => array(
+                    __('Role-based user management system with role table view', 'pexpress'),
+                    __('Multi-select user assignment modal with intelligent filtering', 'pexpress'),
+                    __('Setup Guideline page with comprehensive documentation', 'pexpress'),
+                    __('Enhanced shortcodes for all dashboard types with proper data preparation', 'pexpress'),
+                    __('User role filtering to prevent duplicate role assignments', 'pexpress'),
+                    __('Support for assigning multiple roles to users', 'pexpress'),
+                    __('Improved modal UI with full-width selection boxes', 'pexpress'),
+                    __('Inline user removal with visual feedback', 'pexpress'),
+                    __('Changelog page for version tracking', 'pexpress'),
+                ),
+                'improved' => array(
+                    __('Settings page UI with role-centric design', 'pexpress'),
+                    __('User assignment workflow with better UX', 'pexpress'),
+                    __('Modal responsiveness and usability', 'pexpress'),
+                    __('Table display showing all user roles at a glance', 'pexpress'),
+                ),
+                'fixed' => array(
+                    __('Shortcode data preparation for frontend pages', 'pexpress'),
+                    __('Role assignment validation and error handling', 'pexpress'),
+                ),
+            ),
+            '1.0.3' => array(
+                'date' => '2024-12-15',
+                'added' => array(
+                    __('Real-time order updates via WordPress Heartbeat API', 'pexpress'),
+                    __('SMS notification system integration with SSLCommerz', 'pexpress'),
+                    __('Custom order statuses for Polar Express workflow', 'pexpress'),
+                    __('AJAX-powered order assignment system', 'pexpress'),
+                ),
+                'improved' => array(
+                    __('Dashboard performance and loading times', 'pexpress'),
+                    __('Order status update mechanisms', 'pexpress'),
+                ),
+            ),
+            '1.0.2' => array(
+                'date' => '2024-12-10',
+                'added' => array(
+                    __('Support dashboard for customer service team', 'pexpress'),
+                    __('Distributor dashboard for order fulfillment tracking', 'pexpress'),
+                    __('Fridge provider dashboard for rental management', 'pexpress'),
+                    __('Delivery dashboard for delivery personnel', 'pexpress'),
+                ),
+                'improved' => array(
+                    __('Dashboard templates with mobile-responsive design', 'pexpress'),
+                    __('Order filtering and status management', 'pexpress'),
+                ),
+            ),
+            '1.0.1' => array(
+                'date' => '2024-12-05',
+                'added' => array(
+                    __('HR dashboard for order assignment', 'pexpress'),
+                    __('Role-based access control system', 'pexpress'),
+                    __('WooCommerce order integration', 'pexpress'),
+                ),
+                'improved' => array(
+                    __('Plugin initialization and dependency management', 'pexpress'),
+                    __('Security with nonce verification and capability checks', 'pexpress'),
+                ),
+            ),
+            '1.0.0' => array(
+                'date' => '2024-12-01',
+                'added' => array(
+                    __('Initial release of Polar Express plugin', 'pexpress'),
+                    __('Custom WordPress roles: Polar HR, Polar Delivery, Polar Fridge Provider, Polar Distributor, Polar Support', 'pexpress'),
+                    __('WooCommerce integration for order management', 'pexpress'),
+                    __('Plugin architecture and core functionality', 'pexpress'),
+                    __('Admin interface foundation', 'pexpress'),
+                ),
+            ),
+        );
+
+    ?>
+        <div class="wrap polar-changelog">
+            <style>
+                .polar-changelog {
+                    max-width: 1200px;
+                    margin: 20px auto;
+                }
+
+                .polar-changelog-header {
+                    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+                    color: #fff;
+                    padding: 40px;
+                    border-radius: 8px;
+                    margin-bottom: 30px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+
+                .polar-changelog-header h1 {
+                    color: #fff;
+                    margin: 0 0 10px 0;
+                    font-size: 32px;
+                }
+
+                .polar-changelog-header p {
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 16px;
+                    margin: 0;
+                }
+
+                .polar-version-section {
+                    background: #fff;
+                    padding: 30px;
+                    margin-bottom: 30px;
+                    border: 1px solid #ccd0d4;
+                    border-radius: 8px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                }
+
+                .polar-version-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 2px solid #2271b1;
+                }
+
+                .polar-version-header h2 {
+                    margin: 0;
+                    color: #1d2327;
+                    font-size: 24px;
+                }
+
+                .polar-version-date {
+                    color: #646970;
+                    font-size: 14px;
+                    font-style: italic;
+                }
+
+                .polar-changelog-category {
+                    margin: 20px 0;
+                }
+
+                .polar-changelog-category h3 {
+                    margin: 0 0 10px 0;
+                    color: #2271b1;
+                    font-size: 18px;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+
+                .polar-changelog-category ul {
+                    margin: 0;
+                    padding-left: 25px;
+                }
+
+                .polar-changelog-category li {
+                    margin: 8px 0;
+                    line-height: 1.6;
+                    color: #2c3338;
+                }
+
+                .polar-changelog-category.added h3 {
+                    color: #00a32a;
+                }
+
+                .polar-changelog-category.improved h3 {
+                    color: #2271b1;
+                }
+
+                .polar-changelog-category.fixed h3 {
+                    color: #d63638;
+                }
+
+                .polar-badge {
+                    display: inline-block;
+                    padding: 3px 8px;
+                    border-radius: 3px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    margin-left: 8px;
+                }
+
+                .polar-badge.latest {
+                    background: #00a32a;
+                    color: #fff;
+                }
+
+                @media (max-width: 768px) {
+                    .polar-changelog-header {
+                        padding: 25px;
+                    }
+
+                    .polar-changelog-header h1 {
+                        font-size: 24px;
+                    }
+
+                    .polar-version-section {
+                        padding: 20px;
+                    }
+
+                    .polar-version-header {
+                        flex-direction: column;
+                        align-items: flex-start;
+                        gap: 10px;
+                    }
+                }
+            </style>
+
+            <div class="polar-changelog-header">
+                <h1><?php esc_html_e('Polar Express Changelog', 'pexpress'); ?></h1>
+                <p><?php esc_html_e('Complete version history and release notes for Polar Express plugin', 'pexpress'); ?></p>
+            </div>
+
+            <?php foreach ($changelog as $version => $details) : ?>
+                <div class="polar-version-section">
+                    <div class="polar-version-header">
+                        <h2>
+                            <?php echo esc_html($version); ?>
+                            <?php if ($version === '1.0.4') : ?>
+                                <span class="polar-badge latest"><?php esc_html_e('Latest', 'pexpress'); ?></span>
+                            <?php endif; ?>
+                        </h2>
+                        <span class="polar-version-date"><?php echo esc_html($details['date']); ?></span>
+                    </div>
+
+                    <?php if (!empty($details['added'])) : ?>
+                        <div class="polar-changelog-category added">
+                            <h3>
+                                <span class="dashicons dashicons-plus-alt"></span>
+                                <?php esc_html_e('Added', 'pexpress'); ?>
+                            </h3>
+                            <ul>
+                                <?php foreach ($details['added'] as $item) : ?>
+                                    <li><?php echo esc_html($item); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($details['improved'])) : ?>
+                        <div class="polar-changelog-category improved">
+                            <h3>
+                                <span class="dashicons dashicons-arrow-up-alt"></span>
+                                <?php esc_html_e('Improved', 'pexpress'); ?>
+                            </h3>
+                            <ul>
+                                <?php foreach ($details['improved'] as $item) : ?>
+                                    <li><?php echo esc_html($item); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if (!empty($details['fixed'])) : ?>
+                        <div class="polar-changelog-category fixed">
+                            <h3>
+                                <span class="dashicons dashicons-yes-alt"></span>
+                                <?php esc_html_e('Fixed', 'pexpress'); ?>
+                            </h3>
+                            <ul>
+                                <?php foreach ($details['fixed'] as $item) : ?>
+                                    <li><?php echo esc_html($item); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+
+            <div class="polar-version-section" style="background: #f6f7f7; border-left: 4px solid #2271b1;">
+                <h3 style="margin-top: 0; color: #1d2327;"><?php esc_html_e('About Polar Express', 'pexpress'); ?></h3>
+                <p style="color: #646970; line-height: 1.6;">
+                    <?php esc_html_e('Polar Express is a custom WordPress extension designed to enhance manual order processing and delivery workflows for Polar\'s bulk ice cream service. The plugin provides role-based dashboards, real-time task assignments, order management, and tracking capabilities for all stakeholders involved in the order fulfillment process.', 'pexpress'); ?>
+                </p>
+                <p style="color: #646970; line-height: 1.6; margin-top: 15px;">
+                    <strong><?php esc_html_e('Plugin Version:', 'pexpress'); ?></strong> <?php echo esc_html(PEXPRESS_VERSION); ?><br>
+                    <strong><?php esc_html_e('WooCommerce Compatibility:', 'pexpress'); ?></strong> 8.0+<br>
+                    <strong><?php esc_html_e('WordPress Compatibility:', 'pexpress'); ?></strong> 6.0+<br>
+                    <strong><?php esc_html_e('PHP Requirement:', 'pexpress'); ?></strong> 7.4+
+                </p>
+            </div>
+        </div>
 <?php
     }
 
