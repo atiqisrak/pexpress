@@ -379,60 +379,60 @@
 
 .polar-add-item-section {
   margin-bottom: 20px;
-  padding: 18px;
+  padding: 20px;
   background: #f8fafc;
   border: 1px dashed #cbd5f5;
-  border-radius: 8px;
+  border-radius: 10px;
   position: relative;
 }
 
-.polar-add-item-section h4 {
-  margin-top: 0;
+.polar-add-item-section h3 {
+  margin: 0 0 12px;
 }
 
-.polar-add-item-form {
+.polar-add-item-help {
+  margin: 0 0 18px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.polar-add-item-actions {
   display: flex;
-  gap: 12px;
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 12px;
 }
 
-.polar-add-item-form .polar-product-select {
-  flex: 1;
-  min-width: 220px;
-}
-
-.polar-add-item-form #polar-item-quantity,
-.polar-add-item-form #polar-item-quantity-quick {
-  width: 110px;
-  padding: 8px 10px;
-}
-
-.polar-add-item-form select,
-.polar-add-item-form input[type="number"] {
-  border: 1px solid #cbd5f5;
-  border-radius: 6px;
+.polar-add-item-actions .button {
   min-height: 38px;
+  padding: 0 20px;
 }
 
-.polar-add-item-form .polar-add-item-btn,
-.polar-add-item-form .polar-add-item-btn-quick {
-  height: 38px;
-  line-height: 1;
+.polar-modal-submit.is-busy {
+  position: relative;
+  opacity: 0.75;
+  pointer-events: none;
 }
 
-.polar-add-item-form .select2-container .select2-selection {
-  border-radius: 6px;
-  border-color: #cbd5f5;
-  min-height: 38px;
+.polar-modal-submit.is-busy::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-top-color: rgba(255, 255, 255, 0.3);
+  animation: polar-modal-spin 0.75s linear infinite;
 }
 
-.polar-add-item-form .select2-container .select2-selection__rendered {
-  line-height: 36px;
-}
-
-.polar-add-item-form .select2-container .select2-selection__arrow {
-  height: 36px;
+@keyframes polar-modal-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .polar-modification-history {
@@ -509,14 +509,12 @@
     order: -1;
   }
 
-  .polar-add-item-form {
+  .polar-add-item-actions {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .polar-add-item-form .polar-product-select,
-  .polar-add-item-form #polar-item-quantity,
-  .polar-add-item-form #polar-item-quantity-quick {
+  .polar-add-item-actions .button {
     width: 100%;
   }
 

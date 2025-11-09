@@ -240,16 +240,59 @@ $customer_name = PExpress_Core::get_billing_name($order);
                 <!-- Add Item Section -->
                 <div class="polar-add-item-section">
                     <h3><?php esc_html_e('Add Item to Order', 'pexpress'); ?></h3>
-                    <div class="polar-add-item-form">
-                        <select id="polar-product-search" class="polar-product-select">
-                            <option value=""><?php esc_html_e('Search for a product...', 'pexpress'); ?></option>
-                        </select>
-                        <input type="number" id="polar-item-quantity" min="1" value="1" placeholder="<?php esc_attr_e('Quantity', 'pexpress'); ?>" />
-                        <button type="button" class="button button-primary polar-add-item-btn" data-order-id="<?php echo esc_attr($order_id); ?>">
-                            <?php esc_html_e('Add to Order', 'pexpress'); ?>
+                    <p class="polar-add-item-help"><?php esc_html_e('Use the product picker to add new items just like the WooCommerce order editor.', 'pexpress'); ?></p>
+                    <div class="polar-add-item-actions">
+                        <button type="button" class="button button-primary polar-open-add-item">
+                            <?php esc_html_e('Add product(s)', 'pexpress'); ?>
                         </button>
                     </div>
                 </div>
+
+                <script type="text/template" id="tmpl-wc-modal-add-products">
+                    <div class="wc-backbone-modal">
+                        <div class="wc-backbone-modal-content">
+                            <section class="wc-backbone-modal-main" role="main">
+                                <header class="wc-backbone-modal-header">
+                                    <h1><?php esc_html_e('Add products', 'woocommerce'); ?></h1>
+                                    <button class="modal-close modal-close-link dashicons dashicons-no-alt">
+                                        <span class="screen-reader-text"><?php esc_html_e('Close modal panel', 'woocommerce'); ?></span>
+                                    </button>
+                                </header>
+                                <article>
+                                    <form action="" method="post" class="polar-modal-add-product-form">
+                                        <table class="widefat">
+                                            <thead>
+                                                <tr>
+                                                    <th><?php esc_html_e('Product', 'woocommerce'); ?></th>
+                                                    <th><?php esc_html_e('Quantity', 'woocommerce'); ?></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <select class="wc-product-search" name="item_id" data-allow_clear="true" data-display_stock="true" data-exclude_type="variable" data-placeholder="<?php esc_attr_e('Search for a product&hellip;', 'woocommerce'); ?>"></select>
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" step="1" min="1" max="9999" autocomplete="off" name="item_qty" placeholder="1" size="4" class="quantity polar-modal-quantity-field" />
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </form>
+                                </article>
+                                <footer>
+                                    <div class="inner">
+                                        <button type="button" class="button cancel-action"><?php esc_html_e('Cancel', 'woocommerce'); ?></button>
+                                        <button type="button" class="button button-primary button-large polar-modal-submit">
+                                            <?php esc_html_e('Add to order', 'woocommerce'); ?>
+                                        </button>
+                                    </div>
+                                </footer>
+                            </section>
+                        </div>
+                    </div>
+                    <div class="wc-backbone-modal-backdrop modal-close"></div>
+                </script>
             </div>
 
             <!-- Assignments -->

@@ -3,76 +3,112 @@
 
     let orderEdit = {
         init: function () {
-            this.initProductSearch();
             this.initItemActions();
+            this.initProductSearch();
             this.initModificationHistory();
-            this.initAddItem();
+            this.initAddItemModal();
         },
 
         initProductSearch: function () {
-            // Initialize product search for main form
-            if ($('#polar-product-search').length) {
-                this.initSelect2('#polar-product-search');
-            }
-
-            // Initialize product search for quick form
-            if ($('#polar-product-search-quick').length) {
-                this.initSelect2('#polar-product-search-quick');
-            }
+            this.initSelect2($('.polar-product-select, .wc-product-search'));
         },
 
-        initSelect2: function (selector) {
-            if (typeof $(selector).select2 === 'undefined') {
-                console.error('Select2 is not available');
+        entityDecoder: (function () {
+            const textarea = document.createElement('textarea');
+            return textarea;
+        })(),
+
+        decodeHtmlEntities: function (value) {
+            if (typeof value !== 'string') {
+                return value || '';
+            }
+            this.entityDecoder.innerHTML = value;
+            return this.entityDecoder.value || value;
+        },
+
+        normalizeCurrencyOutput: function (value) {
+            if (typeof value !== 'string') {
+                return value;
+            }
+            return value.replace(/\u00a0/g, ' ').trim();
+        },
+
+        activeModal: null,
+
+        initSelect2: function (target) {
+            if (typeof $.fn.select2 === 'undefined') {
                 return;
             }
 
-            const $select = $(selector);
-            const $dropdownParent = $select.closest('.polar-add-item-section').length
-                ? $select.closest('.polar-add-item-section')
-                : ($select.closest('.polar-order-item').length ? $select.closest('.polar-order-item') : $(document.body));
+            const $elements = target && target.jquery ? target : $(target);
 
-            $select.select2({
-                width: '100%',
-                dropdownParent: $dropdownParent,
-                ajax: {
-                    url: polarOrderEdit.ajaxUrl,
-                    dataType: 'json',
-                    delay: 250,
-                    data: function (params) {
-                        return {
-                            action: 'woocommerce_json_search_products',
-                            term: params.term || '',
-                            security: polarOrderEdit.wcSearchNonce || '',
-                        };
+            if (!$elements.length) {
+                return;
+            }
+
+            $elements.each(function () {
+                const $select = $(this);
+
+                if (!$select.length || $select.data('select2')) {
+                    return;
+                }
+
+                let $dropdownParent = $select.closest('.polar-modal__dialog');
+                if (!$dropdownParent.length) {
+                    $dropdownParent = $select.closest('.polar-add-item-section');
+                }
+                if (!$dropdownParent.length) {
+                    $dropdownParent = $select.closest('.polar-order-item');
+                }
+                if (!$dropdownParent.length) {
+                    $dropdownParent = $(document.body);
+                }
+
+                const placeholderText = $select.data('placeholder') || (polarOrderEdit.i18n.searchProducts || 'Search for a product...');
+
+                $select.select2({
+                    width: '100%',
+                    dropdownParent: $dropdownParent,
+                    ajax: {
+                        url: polarOrderEdit.ajaxUrl,
+                        dataType: 'json',
+                        delay: 250,
+                        data: function (params) {
+                            return {
+                                action: 'polar_search_products',
+                                term: params.term || '',
+                                security: polarOrderEdit.wcSearchNonce || '',
+                            };
+                        },
+                        processResults: function (data) {
+                            const results = [];
+                            if (data && Array.isArray(data)) {
+                                data.forEach(function (item) {
+                                    if (item && item.id && item.text) {
+                                        results.push({ id: item.id, text: item.text });
+                                    }
+                                });
+                            } else if (data && data.success && Array.isArray(data.data)) {
+                                data.data.forEach(function (item) {
+                                    if (item && item.id && item.text) {
+                                        results.push({ id: item.id, text: item.text });
+                                    }
+                                });
+                            } else if (data && typeof data === 'object') {
+                                $.each(data, function (id, text) {
+                                    if (id && text) {
+                                        results.push({ id: id, text: text });
+                                    }
+                                });
+                            }
+                            return { results: results };
+                        },
+                        cache: true,
                     },
-                    processResults: function (data) {
-                        const results = [];
-                        if (data && typeof data === 'object') {
-                            $.each(data, function (id, text) {
-                                if (id && text) {
-                                    results.push({
-                                        id: id,
-                                        text: text,
-                                    });
-                                }
-                            });
-                        }
-                        return {
-                            results: results,
-                        };
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('Product search error:', error);
-                        return {
-                            results: []
-                        };
-                    },
-                    cache: true,
-                },
-                minimumInputLength: 2,
-                placeholder: polarOrderEdit.i18n.searchProducts || 'Search for a product...',
-                allowClear: true,
+                    minimumInputLength: 2,
+                    placeholder: placeholderText,
+                    allowClear: true,
+                });
             });
         },
 
@@ -84,7 +120,6 @@
             $(document).off('click', '.polar-edit-item').on('click', '.polar-edit-item', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Edit button clicked');
                 const $row = $(this).closest('tr');
                 orderEdit.showItemEditor($row);
             });
@@ -92,7 +127,6 @@
             $(document).off('click', '.polar-remove-item').on('click', '.polar-remove-item', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Remove button clicked');
                 if (!confirm(polarOrderEdit.i18n.confirmRemove || 'Are you sure you want to remove this item?')) {
                     return;
                 }
@@ -107,7 +141,6 @@
             $(document).off('click', '.polar-replace-item').on('click', '.polar-replace-item', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Replace button clicked');
                 const itemId = $(this).data('item-id');
                 if (itemId) {
                     orderEdit.showReplaceModal(itemId);
@@ -119,7 +152,6 @@
             $(document).off('click', '.polar-save-item').on('click', '.polar-save-item', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Save button clicked');
                 const $row = $(this).closest('tr');
                 orderEdit.saveItem($row);
             });
@@ -127,7 +159,6 @@
             $(document).off('click', '.polar-cancel-edit').on('click', '.polar-cancel-edit', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Cancel button clicked');
                 const $row = $(this).closest('tr');
                 orderEdit.cancelEdit($row);
             });
@@ -163,39 +194,147 @@
                 });
         },
 
-        initAddItem: function () {
-            // Main form button - use event delegation
-            $(document).off('click', '.polar-add-item-btn').on('click', '.polar-add-item-btn', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Add item button clicked');
-                const productId = $('#polar-product-search').val();
-                const quantity = parseInt($('#polar-item-quantity').val()) || 1;
+        initAddItemModal: function () {
+            const self = this;
 
-                if (!productId) {
-                    alert(polarOrderEdit.i18n.selectProduct || 'Please select a product.');
-                    return;
+            $(document)
+                .off('click', '.polar-open-add-item')
+                .on('click', '.polar-open-add-item', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    self.openAddItemModal();
+                });
+        },
+
+        openAddItemModal: function () {
+            const self = this;
+
+            if (this.activeModal) {
+                this.closeAddItemModal();
+            }
+
+            const templateFn = window.wp && window.wp.template ? window.wp.template('wc-modal-add-products') : null;
+            const templateHtml = templateFn ? templateFn({}) : $('#tmpl-wc-modal-add-products').html();
+
+            if (!templateHtml) {
+                return;
+            }
+
+            const $wrapper = $('<div />').html(templateHtml);
+            const $modal = $wrapper.find('.wc-backbone-modal').first();
+            const $backdrop = $wrapper.find('.wc-backbone-modal-backdrop').first();
+
+            if (!$modal.length || !$backdrop.length) {
+                return;
+            }
+
+            $('body').append($modal).append($backdrop);
+
+            const $form = $modal.find('form.polar-modal-add-product-form').first();
+            const $select = $form.find('.wc-product-search');
+            const $quantity = $form.find('.polar-modal-quantity-field');
+            const $submit = $modal.find('.polar-modal-submit').first();
+
+            this.initSelect2($select);
+            if ($select.data('select2')) {
+                setTimeout(function () {
+                    $select.select2('open');
+                }, 0);
+            } else {
+                $select.trigger('focus');
+            }
+
+            const escHandler = function (event) {
+                if (event.key === 'Escape') {
+                    self.closeAddItemModal();
                 }
+            };
 
-                console.log('Adding item:', productId, quantity);
-                orderEdit.addItem(productId, quantity);
+            const closeHandler = function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                self.closeAddItemModal();
+            };
+
+            $modal.on('click', '.modal-close, .modal-close-link, .cancel-action', closeHandler);
+            $backdrop.on('click', closeHandler);
+
+            $submit.on('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                self.handleAddItemSubmit($form, $submit);
             });
 
-            // Quick form button
-            $(document).off('click', '.polar-add-item-btn-quick').on('click', '.polar-add-item-btn-quick', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Add item quick button clicked');
-                const productId = $('#polar-product-search-quick').val();
-                const quantity = parseInt($('#polar-item-quantity-quick').val()) || 1;
+            $form.on('submit', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                self.handleAddItemSubmit($form, $submit);
+            });
 
-                if (!productId) {
-                    alert(polarOrderEdit.i18n.selectProduct || 'Please select a product.');
-                    return;
+            $(document).on('keydown.polarModal', escHandler);
+
+            this.activeModal = {
+                modal: $modal,
+                backdrop: $backdrop,
+                escHandler: escHandler
+            };
+        },
+
+        closeAddItemModal: function () {
+            if (!this.activeModal) {
+                return;
+            }
+
+            this.activeModal.modal.off('click', '.modal-close, .modal-close-link, .cancel-action');
+            this.activeModal.backdrop.off('click');
+            this.activeModal.modal.remove();
+            this.activeModal.backdrop.remove();
+            $(document).off('keydown.polarModal', this.activeModal.escHandler);
+            this.activeModal = null;
+        },
+
+        handleAddItemSubmit: function ($form, $submitBtn) {
+            const self = this;
+            const $select = $form.find('.wc-product-search');
+            const $quantityField = $form.find('.polar-modal-quantity-field');
+            const productId = $select.val();
+            const quantity = parseInt($quantityField.val(), 10);
+
+            if (!productId) {
+                alert(polarOrderEdit.i18n.selectProduct || 'Please select a product.');
+                if ($select.data('select2')) {
+                    $select.select2('open');
+                } else {
+                    $select.trigger('focus');
                 }
+                return;
+            }
 
-                console.log('Adding item:', productId, quantity);
-                orderEdit.addItem(productId, quantity);
+            if (!Number.isInteger(quantity) || quantity < 1) {
+                alert(polarOrderEdit.i18n.invalidQuantity || 'Please enter a valid quantity.');
+                $quantityField.trigger('focus');
+                return;
+            }
+
+            const $submit = $submitBtn || $form.find('.polar-modal-submit');
+            $submit.prop('disabled', true).addClass('is-busy');
+
+            this.addItem(productId, quantity, {
+                onSuccess: function (response) {
+                    self.closeAddItemModal();
+                    if (response && response.success) {
+                        location.reload();
+                    }
+                },
+                onError: function (response) {
+                    const message = response && response.data && response.data.message
+                        ? response.data.message
+                        : (polarOrderEdit.i18n.addProductError || 'Error adding item.');
+                    alert(message);
+                },
+                onComplete: function () {
+                    $submit.prop('disabled', false).removeClass('is-busy');
+                }
             });
         },
 
@@ -212,9 +351,11 @@
                 maximumFractionDigits: decimals,
             });
             const priceFormat = currency.price_format || '%1$s%2$s';
-            const symbol = currency.symbol || '$';
+            const rawSymbol = currency.symbol || '$';
+            const symbol = this.decodeHtmlEntities(rawSymbol);
 
-            return priceFormat.replace('%1$s', symbol).replace('%2$s', formattedNumber);
+            const formatted = priceFormat.replace('%1$s', symbol).replace('%2$s', formattedNumber);
+            return this.normalizeCurrencyOutput(this.decodeHtmlEntities(formatted));
         },
 
         showItemEditor: function ($row) {
@@ -358,7 +499,8 @@
             orderEdit.updateItem(itemId, quantity, price);
         },
 
-        addItem: function (productId, quantity) {
+        addItem: function (productId, quantity, callbacks) {
+            const options = callbacks || {};
             $.ajax({
                 url: polarOrderEdit.ajaxUrl,
                 type: 'POST',
@@ -369,16 +511,40 @@
                     product_id: productId,
                     quantity: quantity,
                 },
+                beforeSend: function () {
+                    if (typeof options.beforeSend === 'function') {
+                        options.beforeSend();
+                    }
+                },
                 success: function (response) {
-                    if (response.success) {
-                        // Reload page to show updated order
-                        location.reload();
+                    if (response && response.success) {
+                        if (typeof options.onSuccess === 'function') {
+                            options.onSuccess(response);
+                        } else {
+                            location.reload();
+                        }
                     } else {
-                        alert(response.data.message || 'Error adding item.');
+                        if (typeof options.onError === 'function') {
+                            options.onError(response);
+                        } else {
+                            const message = response && response.data && response.data.message
+                                ? response.data.message
+                                : (polarOrderEdit.i18n.addProductError || 'Error adding item.');
+                            alert(message);
+                        }
                     }
                 },
                 error: function () {
-                    alert('An error occurred. Please try again.');
+                    if (typeof options.onError === 'function') {
+                        options.onError();
+                    } else {
+                        alert(polarOrderEdit.i18n.genericError || 'An error occurred. Please try again.');
+                    }
+                },
+                complete: function () {
+                    if (typeof options.onComplete === 'function') {
+                        options.onComplete();
+                    }
                 },
             });
         },
@@ -511,7 +677,7 @@
             const totalText = $(this).find('.item-total').text().replace(/[^0-9.]/g, '');
             total += parseFloat(totalText) || 0;
         });
-        $('#polar-order-total').text('$' + total.toFixed(2));
+        $('#polar-order-total').text(orderEdit.formatCurrency(total));
     }
 
 })(jQuery);
