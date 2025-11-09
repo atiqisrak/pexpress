@@ -14,7 +14,7 @@
             if ($('#polar-product-search').length) {
                 this.initSelect2('#polar-product-search');
             }
-            
+
             // Initialize product search for quick form
             if ($('#polar-product-search-quick').length) {
                 this.initSelect2('#polar-product-search-quick');
@@ -26,8 +26,15 @@
                 console.error('Select2 is not available');
                 return;
             }
-            
-            $(selector).select2({
+
+            const $select = $(selector);
+            const $dropdownParent = $select.closest('.polar-add-item-section').length
+                ? $select.closest('.polar-add-item-section')
+                : ($select.closest('.polar-order-item').length ? $select.closest('.polar-order-item') : $(document.body));
+
+            $select.select2({
+                width: '100%',
+                dropdownParent: $dropdownParent,
                 ajax: {
                     url: polarOrderEdit.ajaxUrl,
                     dataType: 'json',
@@ -55,7 +62,7 @@
                             results: results,
                         };
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         console.error('Product search error:', error);
                         return {
                             results: []
@@ -64,7 +71,7 @@
                     cache: true,
                 },
                 minimumInputLength: 2,
-                placeholder: 'Search for a product...',
+                placeholder: polarOrderEdit.i18n.searchProducts || 'Search for a product...',
                 allowClear: true,
             });
         },
@@ -132,11 +139,28 @@
         },
 
         initModificationHistory: function () {
-            $('.polar-toggle-history').on('click', function () {
-                const $content = $('.polar-history-content');
-                $content.slideToggle();
-                $(this).toggleClass('dashicons-arrow-down-alt2 dashicons-arrow-up-alt2');
-            });
+            $(document)
+                .off('click', '.polar-toggle-history')
+                .on('click', '.polar-toggle-history', function (e) {
+                    e.preventDefault();
+                    const $toggle = $(this);
+                    const $container = $toggle.closest('.polar-order-item');
+                    let $content = $container.find('.polar-history-content').first();
+
+                    if (!$content.length) {
+                        $content = $toggle.closest('.polar-order-edit-dashboard').find('.polar-history-content').first();
+                    }
+
+                    if ($content.length) {
+                        if ($content.hasClass('is-hidden')) {
+                            $content.removeClass('is-hidden').hide();
+                        }
+                        $content.slideToggle(200, function () {
+                            $content.toggleClass('is-hidden', !$content.is(':visible'));
+                        });
+                        $toggle.toggleClass('dashicons-arrow-down-alt2 dashicons-arrow-up-alt2');
+                    }
+                });
         },
 
         initAddItem: function () {
@@ -175,40 +199,132 @@
             });
         },
 
-        showItemEditor: function ($row) {
-            // Store original values
-            $row.data('original-html', $row.html());
+        formatCurrency: function (amount) {
+            if (!isFinite(amount)) {
+                return '';
+            }
 
-            const itemId = $row.find('.polar-edit-item').data('item-id');
-            const quantity = $row.find('.item-quantity').text().trim();
-            const priceText = $row.find('.item-price').text().trim().replace(/[^0-9.]/g, '');
-            const totalText = $row.find('.item-total').text().trim().replace(/[^0-9.]/g, '');
-            const price = parseFloat(priceText) || (parseFloat(totalText) / parseFloat(quantity));
-
-            const editorHtml = `
-                <td class="column-quantity">
-                    <input type="number" class="polar-edit-quantity" value="${quantity}" min="1" style="width: 80px;" />
-                </td>
-                <td class="column-price">
-                    <input type="number" class="polar-edit-price" value="${price}" min="0" step="0.01" style="width: 100px;" />
-                </td>
-                <td class="column-total">
-                    <span class="item-total-preview"></span>
-                </td>
-                <td class="column-actions">
-                    <button type="button" class="button button-small polar-save-item" data-item-id="${itemId}">Save</button>
-                    <button type="button" class="button button-small polar-cancel-edit">Cancel</button>
-                </td>
-            `;
-
-            $row.find('td.column-quantity, td.column-price, td.column-total, td.column-actions').replaceWith(editorHtml);
-            
-            // Calculate total on change
-            $row.find('.polar-edit-quantity, .polar-edit-price').on('input', function() {
-                const qty = parseFloat($row.find('.polar-edit-quantity').val()) || 0;
-                const prc = parseFloat($row.find('.polar-edit-price').val()) || 0;
-                $row.find('.item-total-preview').text('$' + (qty * prc).toFixed(2));
+            const currency = polarOrderEdit.currency || {};
+            const decimals = typeof currency.decimals === 'number' ? currency.decimals : 2;
+            const locale = currency.locale ? currency.locale.replace(/_/g, '-') : undefined;
+            const formattedNumber = amount.toLocaleString(locale, {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals,
             });
+            const priceFormat = currency.price_format || '%1$s%2$s';
+            const symbol = currency.symbol || '$';
+
+            return priceFormat.replace('%1$s', symbol).replace('%2$s', formattedNumber);
+        },
+
+        showItemEditor: function ($row) {
+            if ($row.hasClass('is-editing')) {
+                return;
+            }
+
+            $('.polar-order-item-row.is-editing').not($row).each(function () {
+                orderEdit.cancelEdit($(this));
+            });
+
+            if (!$row.data('original-html')) {
+                $row.data('original-html', $row.html());
+            }
+
+            $row.addClass('is-editing');
+
+            const itemId = $row.data('item-id');
+            const decimals = polarOrderEdit.currency && typeof polarOrderEdit.currency.decimals === 'number'
+                ? polarOrderEdit.currency.decimals
+                : 2;
+            const quantityAttr = parseFloat($row.data('quantity'));
+            const priceAttr = parseFloat($row.data('unitPrice'));
+            const totalAttr = parseFloat($row.data('lineTotal'));
+
+            const fallbackQuantity = parseFloat($row.find('.item-quantity').first().text()) || 1;
+            const quantity = Number.isFinite(quantityAttr) && quantityAttr > 0 ? quantityAttr : fallbackQuantity;
+
+            const fallbackTotal = Number.isFinite(totalAttr) ? totalAttr : quantity * (parseFloat($row.find('.item-price').first().text().replace(/[^0-9.\-]/g, '')) || 0);
+            const fallbackPrice = quantity ? fallbackTotal / quantity : 0;
+            const unitPrice = Number.isFinite(priceAttr) ? priceAttr : fallbackPrice;
+            const priceStep = decimals > 0 ? Math.pow(10, -decimals) : 1;
+
+            const $quantityCells = $row.find('td.column-quantity');
+            const $priceCells = $row.find('td.column-price');
+            const $totalCells = $row.find('td.column-total');
+            const $actionCells = $row.find('td.column-actions');
+
+            const $quantityCell = $quantityCells.first();
+            const $priceCell = $priceCells.first();
+            const $totalCell = $totalCells.first();
+            const $actionCell = $actionCells.first();
+
+            $quantityCells.not($quantityCell).remove();
+            $priceCells.not($priceCell).remove();
+            $totalCells.not($totalCell).remove();
+            $actionCells.not($actionCell).remove();
+
+            $quantityCell.empty().append(
+                $('<label>', {
+                    class: 'screen-reader-text',
+                    for: `polar-edit-quantity-${itemId}`,
+                    text: polarOrderEdit.i18n.quantityLabel || 'Quantity',
+                }),
+                $('<input>', {
+                    type: 'number',
+                    id: `polar-edit-quantity-${itemId}`,
+                    class: 'polar-edit-quantity',
+                    value: quantity,
+                    min: 1,
+                    step: 1,
+                    css: { width: '100px' },
+                })
+            );
+
+            $priceCell.empty().append(
+                $('<label>', {
+                    class: 'screen-reader-text',
+                    for: `polar-edit-price-${itemId}`,
+                    text: polarOrderEdit.i18n.priceLabel || 'Price',
+                }),
+                $('<input>', {
+                    type: 'number',
+                    id: `polar-edit-price-${itemId}`,
+                    class: 'polar-edit-price',
+                    value: Number.isFinite(unitPrice) ? unitPrice.toFixed(decimals) : (0).toFixed(decimals),
+                    min: 0,
+                    step: priceStep,
+                    css: { width: '120px' },
+                })
+            );
+
+            const $totalPreview = $('<span>', { class: 'item-total-preview' });
+            $totalCell.empty().append($totalPreview);
+
+            $actionCell.empty().append(
+                $('<div>', { class: 'polar-item-actions' }).append(
+                    $('<button>', {
+                        type: 'button',
+                        class: 'button button-small button-primary polar-save-item',
+                        'data-item-id': itemId,
+                        text: polarOrderEdit.i18n.saveItem || 'Save',
+                    }),
+                    $('<button>', {
+                        type: 'button',
+                        class: 'button button-small polar-cancel-edit',
+                        text: polarOrderEdit.i18n.cancelEdit || 'Cancel',
+                    })
+                )
+            );
+
+            const updatePreview = function () {
+                const qty = parseFloat($quantityCell.find('.polar-edit-quantity').val()) || 0;
+                const price = parseFloat($priceCell.find('.polar-edit-price').val()) || 0;
+                $totalPreview.text(orderEdit.formatCurrency(qty * price));
+            };
+
+            $quantityCell.find('.polar-edit-quantity').on('input', updatePreview);
+            $priceCell.find('.polar-edit-price').on('input', updatePreview);
+            updatePreview();
         },
 
         cancelEdit: function ($row) {
@@ -217,15 +333,25 @@
                 $row.html(originalHtml);
                 orderEdit.initItemActions();
             }
+            $row.removeClass('is-editing');
+            $row.removeData('original-html');
         },
 
         saveItem: function ($row) {
-            const itemId = $row.find('.polar-save-item').data('item-id');
-            const quantity = parseFloat($row.find('.polar-edit-quantity').val());
-            const price = parseFloat($row.find('.polar-edit-price').val());
+            const itemId = $row.find('.polar-save-item').data('item-id') || $row.data('item-id');
+            const quantityValue = $row.find('.polar-edit-quantity').val();
+            const priceValue = $row.find('.polar-edit-price').val();
 
-            if (!quantity || quantity < 1) {
+            const quantity = parseInt(quantityValue, 10);
+            const price = priceValue === '' ? null : parseFloat(priceValue);
+
+            if (!Number.isInteger(quantity) || quantity < 1) {
                 alert(polarOrderEdit.i18n.invalidQuantity || 'Please enter a valid quantity.');
+                return;
+            }
+
+            if (price !== null && (!isFinite(price) || price < 0)) {
+                alert(polarOrderEdit.i18n.invalidPrice || 'Please enter a valid price.');
                 return;
             }
 
@@ -281,17 +407,28 @@
         },
 
         updateItem: function (itemId, quantity, price) {
+            const data = {
+                action: 'polar_update_order_item',
+                nonce: polarOrderEdit.nonce,
+                order_id: polarOrderEdit.orderId,
+                item_id: itemId,
+            };
+
+            if (Number.isInteger(quantity)) {
+                data.quantity = quantity;
+            }
+
+            if (price !== null && price !== undefined && isFinite(price)) {
+                const decimals = polarOrderEdit.currency && typeof polarOrderEdit.currency.decimals === 'number'
+                    ? polarOrderEdit.currency.decimals
+                    : 2;
+                data.price = parseFloat(price.toFixed(decimals));
+            }
+
             $.ajax({
                 url: polarOrderEdit.ajaxUrl,
                 type: 'POST',
-                data: {
-                    action: 'polar_update_order_item',
-                    nonce: polarOrderEdit.nonce,
-                    order_id: polarOrderEdit.orderId,
-                    item_id: itemId,
-                    quantity: quantity,
-                    price: price,
-                },
+                data: data,
                 success: function (response) {
                     if (response.success) {
                         location.reload();
@@ -347,7 +484,7 @@
             console.error('polarOrderEdit is not defined. Make sure the script is properly localized.');
             return;
         }
-        
+
         // Check if jQuery and Select2 are available
         if (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined') {
             console.error('jQuery or Select2 is not loaded.');
@@ -358,9 +495,9 @@
                 return;
             }
         }
-        
+
         orderEdit.init();
-        
+
         // Re-inject buttons after a short delay to ensure items are rendered
         setTimeout(function () {
             orderEdit.injectItemButtons();
@@ -370,7 +507,7 @@
     // Update order total after item changes
     function updateOrderTotal() {
         let total = 0;
-        $('.polar-order-item-row').each(function() {
+        $('.polar-order-item-row').each(function () {
             const totalText = $(this).find('.item-total').text().replace(/[^0-9.]/g, '');
             total += parseFloat(totalText) || 0;
         });

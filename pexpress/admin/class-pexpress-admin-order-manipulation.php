@@ -66,12 +66,12 @@ class PExpress_Admin_Order_Manipulation
     {
         // Only load on custom order edit page - check both hook and screen
         $is_order_edit_page = false;
-        
+
         // Check hook first
         if (isset($_GET['page']) && $_GET['page'] === 'polar-express-order-edit') {
             $is_order_edit_page = true;
         }
-        
+
         // Also check screen ID if available
         $screen = get_current_screen();
         if ($screen && isset($screen->id)) {
@@ -80,7 +80,7 @@ class PExpress_Admin_Order_Manipulation
                 $is_order_edit_page = true;
             }
         }
-        
+
         if (!$is_order_edit_page) {
             return;
         }
@@ -140,11 +140,24 @@ class PExpress_Admin_Order_Manipulation
                 'nonce' => wp_create_nonce('polar_order_edit_nonce'),
                 'orderId' => $order_id,
                 'wcSearchNonce' => $wc_search_nonce,
+                'currency' => array(
+                    'symbol' => get_woocommerce_currency_symbol(),
+                    'price_format' => get_woocommerce_price_format(),
+                    'decimals' => wc_get_price_decimals(),
+                    'decimal_separator' => wc_get_price_decimal_separator(),
+                    'thousand_separator' => wc_get_price_thousand_separator(),
+                    'locale' => get_locale(),
+                ),
                 'i18n' => array(
                     'searchProducts' => __('Search for a product...', 'pexpress'),
                     'selectProduct' => __('Please select a product.', 'pexpress'),
                     'confirmRemove' => __('Are you sure you want to remove this item?', 'pexpress'),
                     'invalidQuantity' => __('Please enter a valid quantity.', 'pexpress'),
+                    'invalidPrice' => __('Please enter a valid price.', 'pexpress'),
+                    'saveItem' => __('Save', 'pexpress'),
+                    'cancelEdit' => __('Cancel', 'pexpress'),
+                    'quantityLabel' => __('Quantity', 'pexpress'),
+                    'priceLabel' => __('Price', 'pexpress'),
                 ),
             )
         );
@@ -209,10 +222,10 @@ class PExpress_Admin_Order_Manipulation
 
         $order_id = $order->get_id();
         $modification_log = $this->get_modification_log($order_id);
-        ?>
+?>
         <div class="polar-order-manipulation-wrapper">
             <h3><?php esc_html_e('Order Manipulation', 'pexpress'); ?></h3>
-            
+
             <div class="polar-add-item-section">
                 <h4><?php esc_html_e('Add Item to Order', 'pexpress'); ?></h4>
                 <div class="polar-add-item-form">
@@ -279,7 +292,7 @@ class PExpress_Admin_Order_Manipulation
                 </div>
             </div>
         </div>
-        <?php
+<?php
     }
 
     /**
@@ -389,6 +402,7 @@ class PExpress_Admin_Order_Manipulation
         }
 
         $item = $order->get_item($item_id);
+        /** @var WC_Order_Item_Product|null $item */
         if (!$item) {
             wp_send_json_error(array('message' => __('Item not found.', 'pexpress')));
         }
@@ -432,15 +446,34 @@ class PExpress_Admin_Order_Manipulation
 
         $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
         $item_id = isset($_POST['item_id']) ? absint($_POST['item_id']) : 0;
-        $quantity = isset($_POST['quantity']) ? absint($_POST['quantity']) : null;
-        $price = isset($_POST['price']) ? floatval($_POST['price']) : null;
+
+        $quantity_provided = array_key_exists('quantity', $_POST);
+        $price_provided = array_key_exists('price', $_POST);
+
+        $quantity = $quantity_provided ? absint($_POST['quantity']) : null;
+
+        $price = null;
+        if ($price_provided) {
+            $price_raw = wc_clean(wp_unslash($_POST['price']));
+            if ($price_raw === '') {
+                $price_provided = false;
+            } elseif (!is_numeric($price_raw)) {
+                wp_send_json_error(array('message' => __('Invalid price value.', 'pexpress')));
+            } else {
+                $price = (float) wc_format_decimal($price_raw);
+            }
+        }
 
         if (!$order_id || !$item_id) {
             wp_send_json_error(array('message' => __('Invalid parameters.', 'pexpress')));
         }
 
-        if ($quantity === null && $price === null) {
+        if (!$quantity_provided && !$price_provided) {
             wp_send_json_error(array('message' => __('No changes specified.', 'pexpress')));
+        }
+
+        if ($quantity_provided && $quantity < 1) {
+            wp_send_json_error(array('message' => __('Quantity must be at least 1.', 'pexpress')));
         }
 
         $order = wc_get_order($order_id);
@@ -449,6 +482,7 @@ class PExpress_Admin_Order_Manipulation
         }
 
         $item = $order->get_item($item_id);
+        /** @var WC_Order_Item_Product|null $item */
         if (!$item) {
             wp_send_json_error(array('message' => __('Item not found.', 'pexpress')));
         }
@@ -461,14 +495,20 @@ class PExpress_Admin_Order_Manipulation
         );
 
         // Update quantity
-        if ($quantity !== null && $quantity > 0) {
+        $new_quantity = $item->get_quantity();
+        if ($quantity_provided && $quantity > 0) {
             $item->set_quantity($quantity);
+            $new_quantity = $quantity;
         }
 
         // Update price
-        if ($price !== null) {
-            $item->set_subtotal($price);
-            $item->set_total($price);
+        if ($price_provided && $price !== null) {
+            $line_total = $price * $new_quantity;
+            $item->set_subtotal($line_total);
+            $item->set_total($line_total);
+            $item->set_subtotal_tax(0);
+            $item->set_total_tax(0);
+            $item->set_taxes(array());
         }
 
         $order->calculate_totals();
@@ -483,11 +523,11 @@ class PExpress_Admin_Order_Manipulation
 
         // Determine action type
         $action = 'item_updated';
-        if ($quantity !== null && $price !== null) {
+        if ($quantity_provided && $price_provided) {
             $action = 'item_updated';
-        } elseif ($quantity !== null) {
+        } elseif ($quantity_provided) {
             $action = 'quantity_changed';
-        } elseif ($price !== null) {
+        } elseif ($price_provided) {
             $action = 'price_changed';
         }
 
@@ -529,6 +569,7 @@ class PExpress_Admin_Order_Manipulation
         }
 
         $item = $order->get_item($item_id);
+        /** @var WC_Order_Item_Product|null $item */
         if (!$item) {
             wp_send_json_error(array('message' => __('Item not found.', 'pexpress')));
         }
@@ -720,4 +761,3 @@ class PExpress_Admin_Order_Manipulation
         return is_array($log) ? $log : array();
     }
 }
-
