@@ -88,6 +88,12 @@ $distributor_count = count($distributor_users);
             <div class="polar-orders-list" id="polar-orders-list">
                 <?php foreach ($pending_orders as $order) :
                     $order_id = $order->get_id();
+                    $forwarded_by_id = (int) PExpress_Core::get_order_meta($order_id, '_polar_forwarded_by');
+                    $forwarded_at_raw = PExpress_Core::get_order_meta($order_id, '_polar_forwarded_at');
+                    $forwarded_note = PExpress_Core::get_order_meta($order_id, '_polar_forward_note');
+                    $forwarded_by_user = $forwarded_by_id ? get_userdata($forwarded_by_id) : false;
+                    $forwarded_by_name = $forwarded_by_user ? $forwarded_by_user->display_name : '';
+                    $forwarded_at = $forwarded_at_raw ? mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $forwarded_at_raw) : '';
                 ?>
                     <div class="polar-order-item" data-order-id="<?php echo esc_attr($order_id); ?>">
                         <div class="order-header">
@@ -162,6 +168,45 @@ $distributor_count = count($distributor_users);
                                         <span class="detail-label"><?php esc_html_e('Total', 'pexpress'); ?></span>
                                         <span class="detail-value order-total"><?php echo wp_kses_post($order->get_formatted_order_total()); ?></span>
                                     </div>
+                                </div>
+                            </div>
+                            <div class="polar-forward-summary">
+                                <span class="forward-summary-badge">
+                                    <?php esc_html_e('Forwarded from Support', 'pexpress'); ?>
+                                </span>
+                                <div class="forward-summary-details">
+                                    <?php if ($forwarded_by_name || $forwarded_at) : ?>
+                                        <p>
+                                            <?php
+                                            if ($forwarded_by_name && $forwarded_at) {
+                                                printf(
+                                                    /* translators: 1: name 2: date */
+                                                    esc_html__('By %1$s on %2$s', 'pexpress'),
+                                                    esc_html($forwarded_by_name),
+                                                    esc_html($forwarded_at)
+                                                );
+                                            } elseif ($forwarded_by_name) {
+                                                printf(
+                                                    /* translators: %s: name */
+                                                    esc_html__('By %s', 'pexpress'),
+                                                    esc_html($forwarded_by_name)
+                                                );
+                                            } elseif ($forwarded_at) {
+                                                printf(
+                                                    /* translators: %s: date */
+                                                    esc_html__('On %s', 'pexpress'),
+                                                    esc_html($forwarded_at)
+                                                );
+                                            }
+                                            ?>
+                                        </p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($forwarded_note)) : ?>
+                                        <p class="forward-note">
+                                            <strong><?php esc_html_e('Support Note:', 'pexpress'); ?></strong>
+                                            <?php echo esc_html($forwarded_note); ?>
+                                        </p>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

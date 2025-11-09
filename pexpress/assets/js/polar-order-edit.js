@@ -7,6 +7,7 @@
             this.initProductSearch();
             this.initModificationHistory();
             this.initAddItemModal();
+            this.initForwardToHR();
         },
 
         initProductSearch: function () {
@@ -230,6 +231,95 @@
                     e.preventDefault();
                     e.stopPropagation();
                     self.openAddItemModal();
+                });
+        },
+
+        initForwardToHR: function () {
+            $(document)
+                .off('click', '.polar-forward-to-hr')
+                .on('click', '.polar-forward-to-hr', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const $button = $(this);
+                    if ($button.prop('disabled')) {
+                        return;
+                    }
+
+                    const orderId = parseInt($button.data('orderId'), 10);
+                    if (!orderId) {
+                        return;
+                    }
+
+                    const $note = $('#polar-forward-note');
+                    const note = $note.length ? $note.val() : '';
+                    const $feedback = $('.polar-forward-feedback');
+                    const $statusBadge = $('.forward-status-badge');
+                    const $forwardMeta = $('.forward-meta').length ? $('.forward-meta') : $('<p class="forward-meta" />').insertBefore($('.forward-label').first());
+
+                    $button.prop('disabled', true).addClass('is-loading');
+                    $feedback.removeClass('is-error is-success').text(polarOrderEdit.i18n.forwarding || 'Forwarding to HR...');
+
+                    $.ajax({
+                        url: polarOrderEdit.ajaxUrl,
+                        method: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'polar_forward_order_to_hr',
+                            nonce: polarOrderEdit.nonce,
+                            order_id: orderId,
+                            note: note,
+                        },
+                    })
+                        .done(function (response) {
+                            if (!response || !response.success) {
+                                const message = response && response.data && response.data.message
+                                    ? response.data.message
+                                    : (polarOrderEdit.i18n.forwardError || 'Unable to forward order. Please try again.');
+                                $feedback.addClass('is-error').text(message);
+                                return;
+                            }
+
+                            const data = response.data || {};
+                            const forwardedMessage = polarOrderEdit.i18n.forwardSuccess || 'Order forwarded to HR.';
+                            $feedback.addClass('is-success').text(data.message || forwardedMessage);
+
+                            if ($statusBadge.length) {
+                                $statusBadge.removeClass('is-idle').addClass('is-pending').text(polarOrderEdit.i18n.awaitingAssignment || 'Awaiting HR Assignment');
+                            }
+
+                            const summary = data.summary || '';
+                            if (summary) {
+                                $forwardMeta.text(summary);
+                            } else {
+                                const forwardedBy = data.forwarded_by || '';
+                                const forwardedAt = data.forwarded_at || '';
+                                let metaText = '';
+                                if (forwardedBy && forwardedAt) {
+                                    metaText = `${forwardedAt} · ${forwardedBy}`;
+                                } else if (forwardedBy) {
+                                    metaText = forwardedBy;
+                                } else if (forwardedAt) {
+                                    metaText = forwardedAt;
+                                }
+                                if (metaText) {
+                                    $forwardMeta.text(metaText);
+                                }
+                            }
+
+                            const noteValue = typeof data.note === 'string' ? data.note : note;
+                            if ($note.length) {
+                                $note.val(noteValue);
+                            }
+
+                            $button.text(polarOrderEdit.i18n.updateForwarding || 'Update Forwarding');
+                        })
+                        .fail(function () {
+                            $feedback.addClass('is-error').text(polarOrderEdit.i18n.forwardError || 'Unable to forward order. Please try again.');
+                        })
+                        .always(function () {
+                            $button.prop('disabled', false).removeClass('is-loading');
+                        });
                 });
         },
 

@@ -39,6 +39,7 @@ class PExpress_Admin_Order_Manipulation
         add_action('wp_ajax_polar_get_product_alternatives', array($this, 'ajax_get_product_alternatives'));
         add_action('wp_ajax_polar_recalculate_order_totals', array($this, 'ajax_recalculate_order_totals'));
         add_action('wp_ajax_polar_search_products', array($this, 'ajax_search_products'));
+        add_action('wp_ajax_polar_forward_order_to_hr', array($this, 'ajax_forward_order_to_hr'));
 
         // Allow WooCommerce product search for our users
         add_filter('woocommerce_json_search_found_products', array($this, 'allow_product_search'), 10, 1);
@@ -241,6 +242,11 @@ class PExpress_Admin_Order_Manipulation
                     'modalQuantityLabel' => __('Quantity', 'pexpress'),
                     'addProductError' => __('Error adding item.', 'pexpress'),
                     'genericError' => __('An error occurred. Please try again.', 'pexpress'),
+                    'forwarding' => __('Forwarding to HR...', 'pexpress'),
+                    'forwardSuccess' => __('Order forwarded to HR.', 'pexpress'),
+                    'forwardError' => __('Unable to forward order. Please try again.', 'pexpress'),
+                    'awaitingAssignment' => __('Awaiting HR Assignment', 'pexpress'),
+                    'updateForwarding' => __('Update Forwarding', 'pexpress'),
                 ),
             )
         );
@@ -260,6 +266,10 @@ class PExpress_Admin_Order_Manipulation
             wp_die(__('You do not have permission to access this page.', 'pexpress'));
         }
 
+        if ($this->is_hr_only_user()) {
+            wp_die(__('HR users cannot edit orders. Please use the HR dashboard for assignments.', 'pexpress'));
+        }
+
         // Get order ID from URL
         $order_id = isset($_GET['order_id']) ? absint($_GET['order_id']) : 0;
         if (!$order_id) {
@@ -277,6 +287,10 @@ class PExpress_Admin_Order_Manipulation
         $delivery_id = PExpress_Core::get_delivery_user_id($order_id);
         $fridge_id = PExpress_Core::get_fridge_user_id($order_id);
         $distributor_id = PExpress_Core::get_distributor_user_id($order_id);
+        $needs_assignment = PExpress_Core::order_needs_assignment($order_id);
+        $forwarded_at = PExpress_Core::get_order_meta($order_id, '_polar_forwarded_at');
+        $forwarded_by = (int) PExpress_Core::get_order_meta($order_id, '_polar_forwarded_by');
+        $forward_note = PExpress_Core::get_order_meta($order_id, '_polar_forward_note');
 
         // Make variables available to template
         $order_id = $order_id;
@@ -286,6 +300,10 @@ class PExpress_Admin_Order_Manipulation
         $delivery_id = $delivery_id ? $delivery_id : 0;
         $fridge_id = $fridge_id ? $fridge_id : 0;
         $distributor_id = $distributor_id ? $distributor_id : 0;
+        $needs_assignment = $needs_assignment;
+        $forwarded_at = $forwarded_at;
+        $forwarded_by = $forwarded_by;
+        $forward_note = $forward_note ? $forward_note : '';
 
         // Include the template
         include PEXPRESS_PLUGIN_DIR . 'templates/order-edit.php';
@@ -826,6 +844,101 @@ class PExpress_Admin_Order_Manipulation
     }
 
     /**
+     * AJAX handler: Forward order to HR
+     */
+    public function ajax_forward_order_to_hr()
+    {
+        $this->verify_request();
+
+        $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+        if (!$order_id) {
+            wp_send_json_error(array('message' => __('Invalid order ID.', 'pexpress')));
+        }
+
+        if ($this->is_hr_only_user()) {
+            wp_send_json_error(array('message' => __('Insufficient permissions.', 'pexpress')));
+        }
+
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            wp_send_json_error(array('message' => __('Order not found.', 'pexpress')));
+        }
+
+        $note = isset($_POST['note']) ? sanitize_textarea_field(wp_unslash($_POST['note'])) : '';
+
+        $user = wp_get_current_user();
+        $timestamp = current_time('mysql');
+        $display_timestamp = mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $timestamp);
+        $forward_summary = '';
+        if ($display_timestamp && $user->display_name) {
+            $forward_summary = sprintf(
+                /* translators: 1: forward date, 2: user name */
+                __('Last forwarded on %1$s by %2$s.', 'pexpress'),
+                $display_timestamp,
+                $user->display_name
+            );
+        } elseif ($display_timestamp) {
+            $forward_summary = sprintf(
+                /* translators: %s: forward date */
+                __('Last forwarded on %s.', 'pexpress'),
+                $display_timestamp
+            );
+        } elseif ($user->display_name) {
+            $forward_summary = sprintf(
+                /* translators: %s: user name */
+                __('Forwarded by %s.', 'pexpress'),
+                $user->display_name
+            );
+        }
+
+        // Update assignment flags
+        PExpress_Core::update_order_meta($order_id, '_polar_needs_assignment', 'yes');
+        PExpress_Core::update_order_meta($order_id, '_polar_forwarded_by', $user->ID);
+        PExpress_Core::update_order_meta($order_id, '_polar_forwarded_at', $timestamp);
+
+        if ($note !== '') {
+            PExpress_Core::update_order_meta($order_id, '_polar_forward_note', $note);
+        } else {
+            PExpress_Core::update_order_meta($order_id, '_polar_forward_note', '');
+        }
+
+        $current_status = $order->get_status();
+        if ('processing' !== $current_status) {
+            $order->update_status('processing', __('Order forwarded to HR for assignment.', 'pexpress'), false);
+        }
+
+        $order->add_order_note(
+            sprintf(
+                /* translators: %s: user name */
+                __('Forwarded to HR by %s for assignment.', 'pexpress'),
+                $user->display_name
+            ),
+            false,
+            true
+        );
+
+        $this->log_order_modification(
+            $order_id,
+            'forwarded_to_hr',
+            null,
+            array(
+                'forwarded_by' => $user->display_name,
+                'note' => $note,
+            ),
+            $order->get_total(),
+            $order->get_total()
+        );
+
+        wp_send_json_success(array(
+            'message' => __('Order forwarded to HR.', 'pexpress'),
+            'forwarded_at' => $display_timestamp,
+            'forwarded_by' => $user->display_name,
+            'note' => $note,
+            'summary' => $forward_summary,
+        ));
+    }
+
+    /**
      * Verify AJAX request
      */
     private function verify_request()
@@ -837,6 +950,10 @@ class PExpress_Admin_Order_Manipulation
 
         // Check permissions
         if (!current_user_can('polar_support') && !current_user_can('edit_shop_orders')) {
+            wp_send_json_error(array('message' => __('Insufficient permissions.', 'pexpress')));
+        }
+
+        if ($this->is_hr_only_user()) {
             wp_send_json_error(array('message' => __('Insufficient permissions.', 'pexpress')));
         }
     }
@@ -881,5 +998,32 @@ class PExpress_Admin_Order_Manipulation
     {
         $log = PExpress_Core::get_order_meta($order_id, '_polar_modification_log');
         return is_array($log) ? $log : array();
+    }
+
+    /**
+     * Determine if current user is HR-only
+     *
+     * @return bool
+     */
+    private function is_hr_only_user()
+    {
+        $user = wp_get_current_user();
+        if (!$user || empty($user->ID)) {
+            return false;
+        }
+
+        $roles = (array) $user->roles;
+        if (!in_array('polar_hr', $roles, true)) {
+            return false;
+        }
+
+        $allowed_roles = array('administrator', 'shop_manager', 'polar_support');
+        foreach ($allowed_roles as $role) {
+            if (in_array($role, $roles, true)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

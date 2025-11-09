@@ -361,3 +361,7 @@ When you're ready to create a release:
 ```
 
 This creates `release/polar-express-1.0.0.zip` ready for distribution.
+
+Change wp-config
+docker compose cp /Users/atiqisrak/myspace/WebProjects/Wordpress-Plugins/pexpress/docker/config/wp-config.php wordpress:/var/www/html/wp-config.php
+docker compose cp /Users/atiqisrak/myspace/WebProjects/Wordpress-Plugins/pexpress/docker/config/php.ini wordpress:/usr/local/etc/php/php.ini

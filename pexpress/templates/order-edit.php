@@ -33,6 +33,17 @@ $order_status = $order->get_status() ? $order->get_status() : 'pending';
 $order_date = $order->get_date_created() ? $order->get_date_created()->date_i18n('F j, Y g:i A') : '';
 $order_total = $order->get_formatted_order_total() ? $order->get_formatted_order_total() : wc_price(0);
 $customer_name = PExpress_Core::get_billing_name($order);
+$needs_assignment = isset($needs_assignment) ? (bool) $needs_assignment : false;
+$forwarded_at = isset($forwarded_at) ? $forwarded_at : '';
+$forwarded_by = isset($forwarded_by) ? (int) $forwarded_by : 0;
+$forward_note = isset($forward_note) ? $forward_note : '';
+$forwarded_by_user = $forwarded_by ? get_userdata($forwarded_by) : false;
+$forwarded_by_name = $forwarded_by_user ? $forwarded_by_user->display_name : '';
+$forwarded_at_display = '';
+if (!empty($forwarded_at)) {
+    $forwarded_at_display = mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $forwarded_at);
+}
+$forward_button_label = $needs_assignment ? __('Update Forwarding', 'pexpress') : __('Forward to HR', 'pexpress');
 ?>
 
 <div class="wrap polar-dashboard polar-order-edit-dashboard">
@@ -293,6 +304,54 @@ $customer_name = PExpress_Core::get_billing_name($order);
                     </div>
                     <div class="wc-backbone-modal-backdrop modal-close"></div>
                 </script>
+            </div>
+
+            <!-- Forward to HR -->
+            <div class="polar-order-item polar-forward-card">
+                <div class="order-header">
+                    <h4><?php esc_html_e('Forward to HR', 'pexpress'); ?></h4>
+                    <span class="forward-status-badge <?php echo $needs_assignment ? 'is-pending' : 'is-idle'; ?>">
+                        <?php echo $needs_assignment ? esc_html__('Awaiting HR Assignment', 'pexpress') : esc_html__('Not Yet Forwarded', 'pexpress'); ?>
+                    </span>
+                </div>
+                <div class="forward-body">
+                    <?php if ($forwarded_at_display || $forwarded_by_name) : ?>
+                        <p class="forward-meta">
+                            <?php
+                            if ($forwarded_at_display && $forwarded_by_name) {
+                                printf(
+                                    /* translators: 1: forward date, 2: user name */
+                                    esc_html__('Last forwarded on %1$s by %2$s.', 'pexpress'),
+                                    esc_html($forwarded_at_display),
+                                    esc_html($forwarded_by_name)
+                                );
+                            } elseif ($forwarded_at_display) {
+                                printf(
+                                    /* translators: %s: forward date */
+                                    esc_html__('Last forwarded on %s.', 'pexpress'),
+                                    esc_html($forwarded_at_display)
+                                );
+                            } elseif ($forwarded_by_name) {
+                                printf(
+                                    /* translators: %s: user name */
+                                    esc_html__('Forwarded by %s.', 'pexpress'),
+                                    esc_html($forwarded_by_name)
+                                );
+                            }
+                            ?>
+                        </p>
+                    <?php endif; ?>
+                    <label for="polar-forward-note" class="forward-label">
+                        <?php esc_html_e('Support Notes for HR', 'pexpress'); ?>
+                    </label>
+                    <textarea id="polar-forward-note" class="polar-textarea forward-note" rows="3" placeholder="<?php esc_attr_e('Provide any context HR should know before assignment...', 'pexpress'); ?>"><?php echo esc_textarea($forward_note); ?></textarea>
+                    <div class="forward-actions">
+                        <button type="button" class="polar-btn polar-btn-primary polar-forward-to-hr" data-order-id="<?php echo esc_attr($order_id); ?>">
+                            <?php echo esc_html($forward_button_label); ?>
+                        </button>
+                        <span class="polar-forward-feedback" role="status" aria-live="polite"></span>
+                    </div>
+                </div>
             </div>
 
             <!-- Assignments -->

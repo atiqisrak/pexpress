@@ -773,6 +773,57 @@
   font-size: 16px;
 }
 
+.polar-forward-summary {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(
+    135deg,
+    rgba(34, 113, 177, 0.06) 0%,
+    rgba(34, 113, 177, 0.02) 100%
+  );
+  border: 1px solid rgba(34, 113, 177, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.forward-summary-badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #2271b1;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.forward-summary-details {
+  font-size: 13px;
+  color: #1d2327;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forward-summary-details p {
+  margin: 0;
+}
+
+.forward-summary-details .forward-note {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(34, 113, 177, 0.15);
+  font-size: 13px;
+  color: #234361;
+}
+
 /* Assignment Info */
 .assignment-info {
   margin-top: 16px;
