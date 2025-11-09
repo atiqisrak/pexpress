@@ -192,7 +192,7 @@ class PExpress_Admin_Order_Manipulation
         wp_enqueue_script(
             'pexpress-order-edit',
             PEXPRESS_PLUGIN_URL . 'assets/js/polar-order-edit.js',
-            array('jquery', 'select2', 'wp-util'),
+            array('jquery', 'select2', 'wp-util', 'wc-backbone-modal'),
             PEXPRESS_VERSION,
             true
         );

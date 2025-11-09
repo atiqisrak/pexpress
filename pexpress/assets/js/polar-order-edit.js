@@ -33,7 +33,34 @@
             return value.replace(/\u00a0/g, ' ').trim();
         },
 
-        activeModal: null,
+        serializeFormData: function ($form) {
+            const result = {};
+            if (!$form || !$form.length) {
+                return result;
+            }
+
+            const fields = $form.serializeArray();
+            fields.forEach(function (field) {
+                if (Object.prototype.hasOwnProperty.call(result, field.name)) {
+                    if (!Array.isArray(result[field.name])) {
+                        result[field.name] = [result[field.name]];
+                    }
+                    result[field.name].push(field.value);
+                } else {
+                    result[field.name] = field.value;
+                }
+            });
+
+            $form.find('input[type="checkbox"]:not(:checked)').each(function () {
+                const name = this.name;
+                if (!name || Object.prototype.hasOwnProperty.call(result, name)) {
+                    return;
+                }
+                result[name] = '';
+            });
+
+            return result;
+        },
 
         initSelect2: function (target) {
             if (typeof $.fn.select2 === 'undefined') {
@@ -53,7 +80,7 @@
                     return;
                 }
 
-                let $dropdownParent = $select.closest('.polar-modal__dialog');
+                let $dropdownParent = $select.closest('.wc-backbone-modal-content');
                 if (!$dropdownParent.length) {
                     $dropdownParent = $select.closest('.polar-add-item-section');
                 }
@@ -209,133 +236,145 @@
         openAddItemModal: function () {
             const self = this;
 
-            if (this.activeModal) {
-                this.closeAddItemModal();
-            }
-
-            const templateFn = window.wp && window.wp.template ? window.wp.template('wc-modal-add-products') : null;
-            const templateHtml = templateFn ? templateFn({}) : $('#tmpl-wc-modal-add-products').html();
-
-            if (!templateHtml) {
+            if (typeof $.fn.WCBackboneModal !== 'function') {
+                console.error('WCBackboneModal is unavailable.');
                 return;
             }
 
-            const $wrapper = $('<div />').html(templateHtml);
-            const $modal = $wrapper.find('.wc-backbone-modal').first();
-            const $backdrop = $wrapper.find('.wc-backbone-modal-backdrop').first();
+            $(document.body).off('.polarAddModal');
 
-            if (!$modal.length || !$backdrop.length) {
-                return;
-            }
+            const onModalLoaded = function (event, target) {
+                if (target !== 'wc-modal-add-products') {
+                    return;
+                }
 
-            $('body').append($modal).append($backdrop);
+                const $modal = $('.wc-backbone-modal');
+                $modal.addClass('polar-order-modal');
+                $modal.find('.wc-backbone-modal-content').addClass('polar-order-modal__content');
+                const $table = $modal.find('table.widefat');
+                const $tbody = $table.find('tbody');
+                const rowTemplate = $tbody.data('row');
 
-            const $form = $modal.find('form.polar-modal-add-product-form').first();
-            const $select = $form.find('.wc-product-search');
-            const $quantity = $form.find('.polar-modal-quantity-field');
-            const $submit = $modal.find('.polar-modal-submit').first();
+                self.initSelect2($modal.find('.wc-product-search'));
+                $(document.body).trigger('wc-enhanced-select-init');
 
-            this.initSelect2($select);
-            if ($select.data('select2')) {
-                setTimeout(function () {
-                    $select.select2('open');
-                }, 0);
-            } else {
-                $select.trigger('focus');
-            }
+                $modal.find('.quantity').attr({
+                    min: 1,
+                    step: 1,
+                }).each(function () {
+                    if (!$(this).val()) {
+                        $(this).val(1);
+                    }
+                });
 
-            const escHandler = function (event) {
-                if (event.key === 'Escape') {
-                    self.closeAddItemModal();
+                $modal.off('click.polarAddModal', '.polar-modal-submit').on('click.polarAddModal', '.polar-modal-submit', function (event) {
+                    event.preventDefault();
+                    const $form = $modal.find('.polar-modal-add-product-form');
+                    const formData = orderEdit.serializeFormData($form);
+                    $(document.body).trigger('wc_backbone_modal_response', ['wc-modal-add-products', formData]);
+                    $modal.find('.modal-close').first().trigger('click');
+                });
+
+                if (rowTemplate) {
+                    $modal.off('change.polarAddModal', '.wc-product-search').on('change.polarAddModal', '.wc-product-search', function () {
+                        const $row = $(this).closest('tr');
+                        if (!$row.is(':last-child')) {
+                            return;
+                        }
+                        const index = $tbody.find('tr').length;
+                        const newRow = rowTemplate.replace(/\[0\]/g, '[' + index + ']');
+                        $tbody.append('<tr>' + newRow + '</tr>');
+                        const $newSelect = $tbody.find('tr:last .wc-product-search');
+                        self.initSelect2($newSelect);
+                        $(document.body).trigger('wc-enhanced-select-init');
+                        $tbody.find('tr:last .quantity').attr({ min: 1, step: 1 }).val(1);
+                    });
                 }
             };
 
-            const closeHandler = function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                self.closeAddItemModal();
+            const onModalResponse = function (event, target, data) {
+                if (target !== 'wc-modal-add-products') {
+                    return;
+                }
+                self.handleAddProductsData(data || {});
             };
 
-            $modal.on('click', '.modal-close, .modal-close-link, .cancel-action', closeHandler);
-            $backdrop.on('click', closeHandler);
-
-            $submit.on('click', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                self.handleAddItemSubmit($form, $submit);
-            });
-
-            $form.on('submit', function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-                self.handleAddItemSubmit($form, $submit);
-            });
-
-            $(document).on('keydown.polarModal', escHandler);
-
-            this.activeModal = {
-                modal: $modal,
-                backdrop: $backdrop,
-                escHandler: escHandler
+            const onModalRemoved = function (event, target) {
+                if (target !== 'wc-modal-add-products') {
+                    return;
+                }
+                $(document.body).off('.polarAddModal');
             };
+
+            $(document.body)
+                .on('wc_backbone_modal_loaded.polarAddModal', onModalLoaded)
+                .on('wc_backbone_modal_response.polarAddModal', onModalResponse)
+                .on('wc_backbone_modal_removed.polarAddModal', onModalRemoved);
+
+            $(document.body).WCBackboneModal({ template: 'wc-modal-add-products' });
         },
 
-        closeAddItemModal: function () {
-            if (!this.activeModal) {
-                return;
-            }
+        handleAddProductsData: function (data) {
+            $(document.body).off('.polarAddModal');
+            $('.wc-backbone-modal').off('change.polarAddModal', '.wc-product-search');
 
-            this.activeModal.modal.off('click', '.modal-close, .modal-close-link, .cancel-action');
-            this.activeModal.backdrop.off('click');
-            this.activeModal.modal.remove();
-            this.activeModal.backdrop.remove();
-            $(document).off('keydown.polarModal', this.activeModal.escHandler);
-            this.activeModal = null;
-        },
+            const ids = Array.isArray(data.item_id) ? data.item_id : (data.item_id ? [data.item_id] : []);
+            const qtyInput = Array.isArray(data.item_qty) ? data.item_qty : (data.item_qty ? [data.item_qty] : []);
+            const items = [];
 
-        handleAddItemSubmit: function ($form, $submitBtn) {
-            const self = this;
-            const $select = $form.find('.wc-product-search');
-            const $quantityField = $form.find('.polar-modal-quantity-field');
-            const productId = $select.val();
-            const quantity = parseInt($quantityField.val(), 10);
+            ids.forEach(function (id, index) {
+                const productId = parseInt(id, 10);
+                if (!productId) {
+                    return;
+                }
+                const rawQty = qtyInput[index] !== undefined ? qtyInput[index] : qtyInput[0];
+                const parsedQty = parseInt(rawQty, 10);
+                const quantity = Number.isFinite(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+                items.push({ id: productId, qty: quantity });
+            });
 
-            if (!productId) {
+            if (!items.length) {
                 alert(polarOrderEdit.i18n.selectProduct || 'Please select a product.');
-                if ($select.data('select2')) {
-                    $select.select2('open');
-                } else {
-                    $select.trigger('focus');
-                }
                 return;
             }
 
-            if (!Number.isInteger(quantity) || quantity < 1) {
-                alert(polarOrderEdit.i18n.invalidQuantity || 'Please enter a valid quantity.');
-                $quantityField.trigger('focus');
-                return;
-            }
+            this.addItemsSequential(items);
+        },
 
-            const $submit = $submitBtn || $form.find('.polar-modal-submit');
-            $submit.prop('disabled', true).addClass('is-busy');
+        addItemsSequential: function (items) {
+            const self = this;
+            const queue = Array.isArray(items) ? items.slice() : [];
+            let hadError = false;
 
-            this.addItem(productId, quantity, {
-                onSuccess: function (response) {
-                    self.closeAddItemModal();
-                    if (response && response.success) {
+            const processNext = function () {
+                if (!queue.length) {
+                    if (!hadError) {
                         location.reload();
                     }
-                },
-                onError: function (response) {
-                    const message = response && response.data && response.data.message
-                        ? response.data.message
-                        : (polarOrderEdit.i18n.addProductError || 'Error adding item.');
-                    alert(message);
-                },
-                onComplete: function () {
-                    $submit.prop('disabled', false).removeClass('is-busy');
+                    return;
                 }
-            });
+
+                const current = queue.shift();
+                self.addItem(current.id, current.qty, {
+                    onSuccess: function () {
+                        processNext();
+                    },
+                    onError: function (response) {
+                        hadError = true;
+                        const message = response && response.data && response.data.message
+                            ? response.data.message
+                            : (polarOrderEdit.i18n.addProductError || 'Error adding item.');
+                        alert(message);
+                    },
+                    onComplete: function () {
+                        if (hadError) {
+                            queue.length = 0;
+                        }
+                    },
+                });
+            };
+
+            processNext();
         },
 
         formatCurrency: function (amount) {
