@@ -132,6 +132,7 @@ class PExpress
 
         // Load admin files if in admin
         if (is_admin()) {
+            require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin-setup-wizard.php';
             require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin.php';
             new PExpress_Admin();
         }
@@ -161,6 +162,48 @@ class PExpress
 
         // Plugin action links
         add_filter('plugin_action_links_' . PEXPRESS_PLUGIN_BASENAME, array($this, 'plugin_action_links'));
+
+        // Redirect to setup wizard on activation (admin only)
+        if (is_admin() && !wp_doing_ajax()) {
+            add_action('admin_init', array($this, 'maybe_redirect_to_setup'));
+        }
+    }
+
+    /**
+     * Redirect to setup wizard if needed
+     */
+    public function maybe_redirect_to_setup()
+    {
+        // Only redirect if transient is set and user has permission
+        if (!get_transient('pexpress_redirect_to_setup')) {
+            return;
+        }
+
+        // Delete transient
+        delete_transient('pexpress_redirect_to_setup');
+
+        // Check if user has permission
+        if (!current_user_can('manage_woocommerce')) {
+            return;
+        }
+
+        // Don't redirect if already on setup wizard or if setup is completed
+        if (isset($_GET['page']) && $_GET['page'] === 'polar-express-setup-wizard') {
+            return;
+        }
+
+        // Ensure setup wizard class is loaded
+        if (!class_exists('PExpress_Admin_Setup_Wizard')) {
+            return;
+        }
+
+        if (PExpress_Admin_Setup_Wizard::is_setup_completed()) {
+            return;
+        }
+
+        // Redirect to setup wizard
+        wp_safe_redirect(admin_url('admin.php?page=polar-express-setup-wizard'));
+        exit;
     }
 
     /**
@@ -251,7 +294,8 @@ class PExpress
         }
 
         // Check permissions
-        if (!current_user_can('polar_hr')) {
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_hr', $current_user->roles) && !current_user_can('manage_woocommerce')) {
             wp_send_json_error(array('message' => __('Insufficient permissions.', 'pexpress')));
         }
 
@@ -448,7 +492,8 @@ class PExpress
             $allowed_statuses = array_merge($allowed_statuses, array_keys($role_status_map[$matched_role]));
         }
 
-        if (current_user_can('manage_woocommerce') || current_user_can('polar_hr')) {
+        $current_user = wp_get_current_user();
+        if (current_user_can('manage_woocommerce') || in_array('polar_hr', $current_user->roles)) {
             $allowed_statuses = array_merge($allowed_statuses, array_keys($general_status_map));
         }
 
@@ -612,6 +657,14 @@ class PExpress
 
         // Run data migration for per-role statuses
         self::migrate_to_per_role_statuses();
+
+        // Check if setup is already completed
+        $setup_completed = get_option('pexpress_setup_completed', false);
+        
+        // If setup not completed, set flag to redirect to wizard
+        if (!$setup_completed) {
+            set_transient('pexpress_redirect_to_setup', true, 30);
+        }
 
         // Flush rewrite rules
         flush_rewrite_rules();

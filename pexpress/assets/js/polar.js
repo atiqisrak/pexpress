@@ -223,7 +223,17 @@
                 var customerName = $order.find('.customer-name').text().toLowerCase();
                 var phoneNumber = $order.find('.phone-number').text().toLowerCase();
 
-                var statusMatch = !statusValue || orderStatus === statusValue || orderStatus === 'wc-' + statusValue;
+                // Normalize status values for comparison
+                var normalizedOrderStatus = orderStatus.replace('wc-', '');
+                var normalizedFilterStatus = statusValue.replace('wc-', '');
+
+                var statusMatch = !statusValue ||
+                    orderStatus === statusValue ||
+                    orderStatus === 'wc-' + statusValue ||
+                    normalizedOrderStatus === normalizedFilterStatus ||
+                    orderStatus === normalizedFilterStatus ||
+                    'wc-' + normalizedOrderStatus === statusValue;
+
                 var searchMatch = !searchValue ||
                     orderText.indexOf(searchValue) !== -1 ||
                     orderId.toString().indexOf(searchValue) !== -1 ||

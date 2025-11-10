@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Role and Permission Management
  *
@@ -14,7 +15,8 @@ if (!defined('ABSPATH')) {
 /**
  * Create custom roles for Polar Express
  */
-function polar_create_roles() {
+function polar_create_roles()
+{
     // 1. Customer Support
     add_role(
         'polar_support',
@@ -28,10 +30,10 @@ function polar_create_roles() {
         )
     );
 
-    // 2. HR (the boss)
+    // 2. Agency (formerly HR - the boss)
     add_role(
         'polar_hr',
-        'Polar HR',
+        'Polar Agency',
         array(
             'read'                 => true,
             'manage_woocommerce'   => true,
@@ -42,10 +44,10 @@ function polar_create_roles() {
         )
     );
 
-    // 3. DELIVERY PERSON
+    // 3. HR (formerly Delivery Person)
     add_role(
         'polar_delivery',
-        'Polar Delivery',
+        'Polar HR',
         array(
             'read' => true,
         )
@@ -73,7 +75,8 @@ function polar_create_roles() {
 /**
  * Remove custom roles on plugin deactivation/uninstall
  */
-function polar_remove_roles() {
+function polar_remove_roles()
+{
     remove_role('polar_support');
     remove_role('polar_hr');
     remove_role('polar_delivery');
@@ -82,4 +85,3 @@ function polar_remove_roles() {
 }
 
 // Note: Roles are registered via the main plugin activation hook
-

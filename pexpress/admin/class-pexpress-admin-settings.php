@@ -186,8 +186,8 @@ class PExpress_Admin_Settings
     public function get_role_description($role_key)
     {
         $descriptions = array(
-            'polar_hr' => __('Full access to assign orders and manage operations', 'pexpress'),
-            'polar_delivery' => __('Can view and update delivery status for assigned orders', 'pexpress'),
+            'polar_hr' => __('Full access to assign orders and manage operations (Agency)', 'pexpress'),
+            'polar_delivery' => __('Can view and update delivery status for assigned orders (HR)', 'pexpress'),
             'polar_fridge' => __('Can view and mark fridge collection for assigned orders', 'pexpress'),
             'polar_distributor' => __('Can view and mark fulfillment for assigned orders', 'pexpress'),
             'polar_support' => __('Can view all orders and provide customer support', 'pexpress'),
@@ -208,8 +208,8 @@ class PExpress_Admin_Settings
 
         // Polar Express roles
         $polar_roles = array(
-            'polar_hr' => __('Polar HR', 'pexpress'),
-            'polar_delivery' => __('Polar Delivery', 'pexpress'),
+            'polar_hr' => __('Polar Agency', 'pexpress'),
+            'polar_delivery' => __('Polar HR', 'pexpress'),
             'polar_fridge' => __('Polar Fridge Provider', 'pexpress'),
             'polar_distributor' => __('Polar Distributor', 'pexpress'),
             'polar_support' => __('Polar Support', 'pexpress'),

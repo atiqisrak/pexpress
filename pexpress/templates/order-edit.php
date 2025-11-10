@@ -43,7 +43,8 @@ $forwarded_at_display = '';
 if (!empty($forwarded_at)) {
     $forwarded_at_display = mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $forwarded_at);
 }
-$forward_button_label = $needs_assignment ? __('Update Forwarding', 'pexpress') : __('Forward to HR', 'pexpress');
+$is_forwarded = !empty($forwarded_at) || !empty($forwarded_by);
+$forward_button_label = $is_forwarded ? __('Update Forwarding', 'pexpress') : __('Forward to HR', 'pexpress');
 ?>
 
 <div class="wrap polar-dashboard polar-order-edit-dashboard">
@@ -310,8 +311,8 @@ $forward_button_label = $needs_assignment ? __('Update Forwarding', 'pexpress') 
             <div class="polar-order-item polar-forward-card">
                 <div class="order-header">
                     <h4><?php esc_html_e('Forward to HR', 'pexpress'); ?></h4>
-                    <span class="forward-status-badge <?php echo $needs_assignment ? 'is-pending' : 'is-idle'; ?>">
-                        <?php echo $needs_assignment ? esc_html__('Awaiting HR Assignment', 'pexpress') : esc_html__('Not Yet Forwarded', 'pexpress'); ?>
+                    <span class="forward-status-badge <?php echo $is_forwarded ? 'is-forwarded' : 'is-idle'; ?>">
+                        <?php echo $is_forwarded ? esc_html__('Forwarded to HR', 'pexpress') : esc_html__('Not Yet Forwarded', 'pexpress'); ?>
                     </span>
                 </div>
                 <div class="forward-body">
@@ -346,9 +347,14 @@ $forward_button_label = $needs_assignment ? __('Update Forwarding', 'pexpress') 
                     </label>
                     <textarea id="polar-forward-note" class="polar-textarea forward-note" rows="3" placeholder="<?php esc_attr_e('Provide any context HR should know before assignment...', 'pexpress'); ?>"><?php echo esc_textarea($forward_note); ?></textarea>
                     <div class="forward-actions">
-                        <button type="button" class="polar-btn polar-btn-primary polar-forward-to-hr" data-order-id="<?php echo esc_attr($order_id); ?>">
+                        <button type="button" class="polar-btn polar-btn-primary polar-forward-to-hr" data-order-id="<?php echo esc_attr($order_id); ?>" <?php echo $is_forwarded && !$needs_assignment ? 'disabled' : ''; ?>>
                             <?php echo esc_html($forward_button_label); ?>
                         </button>
+                        <?php if ($is_forwarded) : ?>
+                            <button type="button" class="polar-btn polar-btn-secondary polar-revoke-forward" data-order-id="<?php echo esc_attr($order_id); ?>" style="margin-left: 10px;">
+                                <?php esc_html_e('Revoke from HR', 'pexpress'); ?>
+                            </button>
+                        <?php endif; ?>
                         <span class="polar-forward-feedback" role="status" aria-live="polite"></span>
                     </div>
                 </div>

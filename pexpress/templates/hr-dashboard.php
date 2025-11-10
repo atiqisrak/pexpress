@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
 <?php
 // Calculate stats
 $pending_count = count($pending_orders);
-$delivery_count = count($delivery_users);
+$hr_count = isset($hr_users) ? count($hr_users) : (isset($delivery_users) ? count($delivery_users) : 0);
 $fridge_count = count($fridge_users);
 $distributor_count = count($distributor_users);
 ?>
@@ -51,7 +51,7 @@ $distributor_count = count($distributor_users);
                 </svg>
             </div>
             <div class="stat-card-content">
-                <h3 class="stat-card-value"><?php echo esc_html($delivery_count); ?></h3>
+                <h3 class="stat-card-value"><?php echo esc_html($hr_count); ?></h3>
                 <p class="stat-card-label"><?php esc_html_e('HR Personnel', 'pexpress'); ?></p>
             </div>
         </div>
@@ -195,8 +195,10 @@ $distributor_count = count($distributor_users);
                             </div>
                         </div>
                         <div class="assignment-form">
-                            <form class="polar-assign-form" data-order-id="<?php echo esc_attr($order_id); ?>">
+                            <form class="polar-assign-form" method="post" data-order-id="<?php echo esc_attr($order_id); ?>">
                                 <?php wp_nonce_field('polar_assign_' . $order_id, 'polar_assign_nonce'); ?>
+                                <input type="hidden" name="action" value="polar_assign_order">
+                                <input type="hidden" name="order_id" value="<?php echo esc_attr($order_id); ?>">
 
                                 <div class="assign-row">
                                     <div class="assign-field">
@@ -210,9 +212,9 @@ $distributor_count = count($distributor_users);
                                             </option>
                                         </select>
                                     </div>
-                                    <div class="assign-field">
+                                    <div class="assign-field polar-meeting-location-field" style="<?php echo ($meeting_type === 'delivery_location') ? 'display: none;' : ''; ?>">
                                         <label><?php esc_html_e('Meeting Address / Notes:', 'pexpress'); ?></label>
-                                        <input type="text" name="meeting_location" class="polar-input" value="<?php echo esc_attr($meeting_location); ?>" placeholder="<?php esc_attr_e('Enter meet point or delivery address', 'pexpress'); ?>">
+                                        <input type="text" name="meeting_location" class="polar-input" value="<?php echo esc_attr($meeting_location); ?>" placeholder="<?php esc_attr_e('Enter meet point address', 'pexpress'); ?>">
                                     </div>
                                     <div class="assign-field">
                                         <label><?php esc_html_e('Meeting Date & Time:', 'pexpress'); ?></label>
@@ -225,7 +227,9 @@ $distributor_count = count($distributor_users);
                                         <label><?php esc_html_e('HR Person:', 'pexpress'); ?></label>
                                         <select name="delivery_user_id" class="polar-select">
                                             <option value=""><?php esc_html_e('Select...', 'pexpress'); ?></option>
-                                            <?php foreach ($delivery_users as $user) : ?>
+                                            <?php 
+                                            $users_for_select = isset($hr_users) ? $hr_users : (isset($delivery_users) ? $delivery_users : array());
+                                            foreach ($users_for_select as $user) : ?>
                                                 <option value="<?php echo esc_attr($user->ID); ?>">
                                                     <?php echo esc_html($user->display_name); ?> (<?php echo esc_html($user->user_email); ?>)
                                                 </option>
@@ -332,134 +336,238 @@ $distributor_count = count($distributor_users);
         ));
         ?>
         <?php if (!empty($recent_assigned)) : ?>
-            <div class="polar-recent-history-table">
-                <table class="wp-list-table widefat fixed striped">
-                    <thead>
-                        <tr>
-                            <th><?php esc_html_e('Order ID', 'pexpress'); ?></th>
-                            <th><?php esc_html_e('Customer', 'pexpress'); ?></th>
-                            <th><?php esc_html_e('Agency', 'pexpress'); ?></th>
-                            <th><?php esc_html_e('HR', 'pexpress'); ?></th>
-                            <th><?php esc_html_e('Fridge', 'pexpress'); ?></th>
-                            <th><?php esc_html_e('Distributor', 'pexpress'); ?></th>
-                            <th><?php esc_html_e('Date', 'pexpress'); ?></th>
-                            <th><?php esc_html_e('Details', 'pexpress'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($recent_assigned as $order) :
-                            $order_id = $order->get_id();
-                            $delivery_id = PExpress_Core::get_delivery_user_id($order_id);
-                            $fridge_id = PExpress_Core::get_fridge_user_id($order_id);
-                            $distributor_id = PExpress_Core::get_distributor_user_id($order_id);
+            <div class="polar-history-cards-grid">
+                <?php foreach ($recent_assigned as $order) :
+                    $order_id = $order->get_id();
+                    $delivery_id = PExpress_Core::get_delivery_user_id($order_id);
+                    $fridge_id = PExpress_Core::get_fridge_user_id($order_id);
+                    $distributor_id = PExpress_Core::get_distributor_user_id($order_id);
 
-                            // Get per-role statuses
-                            $agency_status = PExpress_Core::get_role_status($order_id, 'agency');
-                            $delivery_status = PExpress_Core::get_role_status($order_id, 'delivery');
-                            $fridge_status = PExpress_Core::get_role_status($order_id, 'fridge');
-                            $distributor_status = PExpress_Core::get_role_status($order_id, 'distributor');
+                    // Get per-role statuses
+                    $agency_status = PExpress_Core::get_role_status($order_id, 'agency');
+                    $delivery_status = PExpress_Core::get_role_status($order_id, 'delivery');
+                    $fridge_status = PExpress_Core::get_role_status($order_id, 'fridge');
+                    $distributor_status = PExpress_Core::get_role_status($order_id, 'distributor');
 
-                            // Status labels
-                            $status_labels = array(
-                                'agency' => array(
-                                    'pending' => __('Pending', 'pexpress'),
-                                    'assigned' => __('Assigned', 'pexpress'),
-                                ),
-                                'delivery' => array(
-                                    'pending' => __('Pending', 'pexpress'),
-                                    'meet_point_arrived' => __('Meet Point', 'pexpress'),
-                                    'delivery_location_arrived' => __('Delivery Location', 'pexpress'),
-                                    'service_in_progress' => __('In Progress', 'pexpress'),
-                                    'service_complete' => __('Service Complete', 'pexpress'),
-                                    'customer_served' => __('Served', 'pexpress'),
-                                ),
-                                'fridge' => array(
-                                    'pending' => __('Pending', 'pexpress'),
-                                    'fridge_drop' => __('Dropped', 'pexpress'),
-                                    'fridge_collected' => __('Collected', 'pexpress'),
-                                    'fridge_returned' => __('Returned', 'pexpress'),
-                                ),
-                                'distributor' => array(
-                                    'pending' => __('Pending', 'pexpress'),
-                                    'distributor_prep' => __('Preparing', 'pexpress'),
-                                    'out_for_delivery' => __('Out for Delivery', 'pexpress'),
-                                    'handoff_complete' => __('Handoff Complete', 'pexpress'),
-                                ),
+                    // Status labels
+                    $status_labels = array(
+                        'agency' => array(
+                            'pending' => __('Pending', 'pexpress'),
+                            'assigned' => __('Assigned', 'pexpress'),
+                        ),
+                        'delivery' => array(
+                            'pending' => __('Pending', 'pexpress'),
+                            'meet_point_arrived' => __('Meet Point', 'pexpress'),
+                            'delivery_location_arrived' => __('Delivery Location', 'pexpress'),
+                            'service_in_progress' => __('In Progress', 'pexpress'),
+                            'service_complete' => __('Service Complete', 'pexpress'),
+                            'customer_served' => __('Served', 'pexpress'),
+                        ),
+                        'fridge' => array(
+                            'pending' => __('Pending', 'pexpress'),
+                            'fridge_drop' => __('Dropped', 'pexpress'),
+                            'fridge_collected' => __('Collected', 'pexpress'),
+                            'fridge_returned' => __('Returned', 'pexpress'),
+                        ),
+                        'distributor' => array(
+                            'pending' => __('Pending', 'pexpress'),
+                            'distributor_prep' => __('Preparing', 'pexpress'),
+                            'out_for_delivery' => __('Out for Delivery', 'pexpress'),
+                            'handoff_complete' => __('Handoff Complete', 'pexpress'),
+                        ),
+                    );
+
+                    // Prepare history data for modal
+                    $roles = array(
+                        'agency' => __('Agency', 'pexpress'),
+                        'delivery' => __('HR', 'pexpress'),
+                        'fridge' => __('Fridge', 'pexpress'),
+                        'distributor' => __('Distributor', 'pexpress'),
+                    );
+                    $history_data = array();
+                    foreach ($roles as $role_key => $role_label) {
+                        $history = PExpress_Core::get_role_status_history($order_id, $role_key);
+                        if (!empty($history)) {
+                            $history_data[$role_key] = array(
+                                'label' => $role_label,
+                                'entries' => array_reverse($history),
                             );
-                        ?>
-                            <tr class="polar-history-row" data-order-id="<?php echo esc_attr($order_id); ?>">
-                                <td><a href="<?php echo esc_url(admin_url('post.php?post=' . $order_id . '&action=edit')); ?>">#<?php echo esc_html($order_id); ?></a></td>
-                                <td><?php echo esc_html(PExpress_Core::get_billing_name($order)); ?></td>
-                                <td><span class="status-chip status-<?php echo esc_attr($agency_status); ?>"><?php echo esc_html($status_labels['agency'][$agency_status] ?? $agency_status); ?></span></td>
-                                <td>
+                        }
+                    }
+                ?>
+                    <div class="polar-history-card" data-order-id="<?php echo esc_attr($order_id); ?>">
+                        <div class="polar-history-card-header">
+                            <div class="polar-history-card-title">
+                                <a href="<?php echo esc_url(admin_url('post.php?post=' . $order_id . '&action=edit')); ?>" class="polar-order-link">
+                                    #<?php echo esc_html($order_id); ?>
+                                </a>
+                                <span class="polar-customer-name"><?php echo esc_html(PExpress_Core::get_billing_name($order)); ?></span>
+                            </div>
+                            <span class="polar-history-date"><?php echo esc_html($order->get_date_created()->date_i18n('M j, Y')); ?></span>
+                        </div>
+                        <div class="polar-history-card-body">
+                            <div class="polar-status-row">
+                                <div class="polar-status-item">
+                                    <span class="polar-status-label"><?php esc_html_e('Agency', 'pexpress'); ?></span>
+                                    <span class="status-chip status-<?php echo esc_attr($agency_status); ?>"><?php echo esc_html($status_labels['agency'][$agency_status] ?? $agency_status); ?></span>
+                                </div>
+                                <div class="polar-status-item">
+                                    <span class="polar-status-label"><?php esc_html_e('HR', 'pexpress'); ?></span>
                                     <?php if ($delivery_id) : ?>
                                         <span class="status-chip status-<?php echo esc_attr($delivery_status); ?>"><?php echo esc_html($status_labels['delivery'][$delivery_status] ?? $delivery_status); ?></span>
                                         <small><?php echo esc_html(get_userdata($delivery_id)->display_name); ?></small>
                                     <?php else : ?>
-                                        <span>—</span>
+                                        <span class="polar-status-empty">—</span>
                                     <?php endif; ?>
-                                </td>
-                                <td>
+                                </div>
+                            </div>
+                            <div class="polar-status-row">
+                                <div class="polar-status-item">
+                                    <span class="polar-status-label"><?php esc_html_e('Fridge', 'pexpress'); ?></span>
                                     <?php if ($fridge_id) : ?>
                                         <span class="status-chip status-<?php echo esc_attr($fridge_status); ?>"><?php echo esc_html($status_labels['fridge'][$fridge_status] ?? $fridge_status); ?></span>
                                         <small><?php echo esc_html(get_userdata($fridge_id)->display_name); ?></small>
                                     <?php else : ?>
-                                        <span>—</span>
+                                        <span class="polar-status-empty">—</span>
                                     <?php endif; ?>
-                                </td>
-                                <td>
+                                </div>
+                                <div class="polar-status-item">
+                                    <span class="polar-status-label"><?php esc_html_e('Distributor', 'pexpress'); ?></span>
                                     <?php if ($distributor_id) : ?>
                                         <span class="status-chip status-<?php echo esc_attr($distributor_status); ?>"><?php echo esc_html($status_labels['distributor'][$distributor_status] ?? $distributor_status); ?></span>
                                         <small><?php echo esc_html(get_userdata($distributor_id)->display_name); ?></small>
                                     <?php else : ?>
-                                        <span>—</span>
+                                        <span class="polar-status-empty">—</span>
                                     <?php endif; ?>
-                                </td>
-                                <td><?php echo esc_html($order->get_date_created()->date_i18n('Y-m-d H:i')); ?></td>
-                                <td><button class="polar-toggle-details" data-order-id="<?php echo esc_attr($order_id); ?>"><?php esc_html_e('View', 'pexpress'); ?></button></td>
-                            </tr>
-                            <tr class="polar-history-details" data-order-id="<?php echo esc_attr($order_id); ?>" style="display:none;">
-                                <td colspan="8">
-                                    <div class="polar-details-content">
-                                        <h4><?php esc_html_e('Status History', 'pexpress'); ?></h4>
-                                        <?php
-                                        $roles = array(
-                                            'agency' => __('Agency', 'pexpress'),
-                                            'delivery' => __('HR', 'pexpress'),
-                                            'fridge' => __('Fridge', 'pexpress'),
-                                            'distributor' => __('Distributor', 'pexpress'),
-                                        );
-                                        foreach ($roles as $role_key => $role_label) :
-                                            $history = PExpress_Core::get_role_status_history($order_id, $role_key);
-                                            if (!empty($history)) :
-                                        ?>
-                                                <div class="polar-history-section">
-                                                    <strong><?php echo esc_html($role_label); ?>:</strong>
-                                                    <ul>
-                                                        <?php foreach (array_reverse($history) as $entry) : ?>
-                                                            <li>
-                                                                <span class="status-badge"><?php echo esc_html($status_labels[$role_key][$entry['status']] ?? $entry['status']); ?></span>
-                                                                <?php if (!empty($entry['note'])) : ?>
-                                                                    <span class="history-note"><?php echo esc_html($entry['note']); ?></span>
-                                                                <?php endif; ?>
-                                                                <span class="history-meta"><?php echo esc_html($entry['user_name']); ?> - <?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry['timestamp']))); ?></span>
-                                                            </li>
-                                                        <?php endforeach; ?>
-                                                    </ul>
-                                                </div>
-                                        <?php
-                                            endif;
-                                        endforeach;
-                                        ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="polar-history-card-footer">
+                            <button type="button" class="polar-btn polar-btn-secondary polar-view-history-btn" data-order-id="<?php echo esc_attr($order_id); ?>" data-history='<?php echo esc_attr(wp_json_encode($history_data)); ?>' data-status-labels='<?php echo esc_attr(wp_json_encode($status_labels)); ?>'>
+                                <?php esc_html_e('View Details', 'pexpress'); ?>
+                            </button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <!-- History Modal -->
+            <div id="polar-history-modal" class="polar-modal" style="display: none;">
+                <div class="polar-modal-overlay"></div>
+                <div class="polar-modal-content">
+                    <div class="polar-modal-header">
+                        <h3><?php esc_html_e('Order History Details', 'pexpress'); ?></h3>
+                        <button type="button" class="polar-modal-close" aria-label="<?php esc_attr_e('Close', 'pexpress'); ?>">
+                            <span class="dashicons dashicons-no-alt"></span>
+                        </button>
+                    </div>
+                    <div class="polar-modal-body" id="polar-history-modal-body">
+                        <!-- Content will be populated by JavaScript -->
+                    </div>
+                </div>
             </div>
         <?php else : ?>
             <p><?php esc_html_e('No recently assigned orders.', 'pexpress'); ?></p>
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+    jQuery(document).ready(function($) {
+        // Show/hide meeting location field based on meeting type
+        $('.polar-assign-form').each(function() {
+            var $form = $(this);
+            var $meetingType = $form.find('select[name="meeting_type"]');
+            var $meetingLocationField = $form.find('.polar-meeting-location-field');
+
+            function toggleMeetingLocation() {
+                if ($meetingType.val() === 'delivery_location') {
+                    $meetingLocationField.slideUp();
+                } else {
+                    $meetingLocationField.slideDown();
+                }
+            }
+
+            // Initial state
+            toggleMeetingLocation();
+
+            // On change
+            $meetingType.on('change', toggleMeetingLocation);
+        });
+
+        // History modal functionality
+        var $modal = $('#polar-history-modal');
+        var $modalBody = $('#polar-history-modal-body');
+        var $modalOverlay = $modal.find('.polar-modal-overlay');
+        var $modalClose = $modal.find('.polar-modal-close');
+
+        function openHistoryModal(orderId, historyData, statusLabels) {
+            var html = '<div class="polar-history-details-content">';
+            html += '<h4>Order #' + orderId + ' - ' + '<?php esc_html_e('Status History', 'pexpress'); ?>' + '</h4>';
+
+            if (Object.keys(historyData).length === 0) {
+                html += '<p><?php esc_html_e('No history available for this order.', 'pexpress'); ?></p>';
+            } else {
+                for (var roleKey in historyData) {
+                    if (historyData.hasOwnProperty(roleKey)) {
+                        var roleData = historyData[roleKey];
+                        html += '<div class="polar-history-section">';
+                        html += '<strong>' + roleData.label + ':</strong>';
+                        html += '<ul class="polar-history-list">';
+
+                        roleData.entries.forEach(function(entry) {
+                            var statusLabel = (statusLabels[roleKey] && statusLabels[roleKey][entry.status]) ? statusLabels[roleKey][entry.status] : entry.status;
+                            html += '<li class="polar-history-entry">';
+                            html += '<span class="status-badge">' + statusLabel + '</span>';
+                            if (entry.note) {
+                                html += '<span class="history-note">' + entry.note + '</span>';
+                            }
+                            html += '<span class="history-meta">' + entry.user_name + ' - ' + entry.timestamp + '</span>';
+                            html += '</li>';
+                        });
+
+                        html += '</ul>';
+                        html += '</div>';
+                    }
+                }
+            }
+
+            html += '</div>';
+            $modalBody.html(html);
+            $modal.fadeIn(300);
+        }
+
+        function closeHistoryModal() {
+            $modal.fadeOut(300);
+            $modalBody.html('');
+        }
+
+        // Open modal
+        $(document).on('click', '.polar-view-history-btn', function() {
+            var orderId = $(this).data('order-id');
+            var historyData = $(this).data('history');
+            var statusLabels = $(this).data('status-labels');
+
+            // Parse JSON if it's a string
+            if (typeof historyData === 'string') {
+                historyData = JSON.parse(historyData);
+            }
+            if (typeof statusLabels === 'string') {
+                statusLabels = JSON.parse(statusLabels);
+            }
+
+            openHistoryModal(orderId, historyData, statusLabels);
+        });
+
+        // Close modal
+        $modalClose.on('click', closeHistoryModal);
+        $modalOverlay.on('click', closeHistoryModal);
+
+        // Close on ESC key
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape' && $modal.is(':visible')) {
+                closeHistoryModal();
+            }
+        });
+    });
+</script>

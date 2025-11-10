@@ -67,6 +67,45 @@ class PExpress_Admin
         add_action('admin_post_pexpress_remove_user_from_role', array($this->modules['roles'], 'handle_remove_user_from_role'));
         add_action('admin_notices', array($this->modules['roles'], 'show_role_assignment_notices'));
         add_action('wp_ajax_pexpress_get_users_for_role', array($this->modules['roles'], 'ajax_get_users_for_role'));
+
+        // Filter admin page title to show correct title
+        add_filter('admin_title', array($this, 'filter_admin_page_title'), 10, 2);
+    }
+
+    /**
+     * Filter admin page title to show correct dashboard name
+     */
+    public function filter_admin_page_title($admin_title, $title)
+    {
+        $screen = get_current_screen();
+        if (!$screen) {
+            return $admin_title;
+        }
+
+        // Only filter Polar Express pages
+        if (strpos($screen->id, 'polar-express') === false) {
+            return $admin_title;
+        }
+
+        $current_user = wp_get_current_user();
+        $page = isset($_GET['page']) ? $_GET['page'] : '';
+
+        // Set correct title based on page
+        if ($page === 'polar-express') {
+            if (in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) {
+                return __('Agency Dashboard', 'pexpress') . $title;
+            } elseif (in_array('polar_delivery', $current_user->roles)) {
+                return __('HR Dashboard', 'pexpress') . $title;
+            } elseif (in_array('polar_support', $current_user->roles)) {
+                return __('Support Portal', 'pexpress') . $title;
+            }
+        } elseif ($page === 'polar-express-delivery') {
+            return __('HR Dashboard', 'pexpress') . $title;
+        } elseif ($page === 'polar-express-support') {
+            return __('Support Portal', 'pexpress') . $title;
+        }
+
+        return $admin_title;
     }
 
     /**
@@ -79,12 +118,32 @@ class PExpress_Admin
             return;
         }
 
+        // Enqueue modern admin styles for all admin pages
+        wp_enqueue_style(
+            'pexpress-admin-modern',
+            PEXPRESS_PLUGIN_URL . 'assets/css/polar-admin-modern.css',
+            array(),
+            PEXPRESS_VERSION
+        );
+
+        // Enqueue original styles for frontend dashboards (if needed)
         wp_enqueue_style(
             'pexpress-admin',
             PEXPRESS_PLUGIN_URL . 'assets/css/polar.css',
             array(),
             PEXPRESS_VERSION
         );
+
+        // Enqueue setup wizard script if on setup wizard page
+        if (strpos($hook, 'polar-express-setup-wizard') !== false) {
+            wp_enqueue_script(
+                'pexpress-admin-setup',
+                PEXPRESS_PLUGIN_URL . 'assets/js/polar-admin-setup.js',
+                array('jquery'),
+                PEXPRESS_VERSION,
+                true
+            );
+        }
 
         wp_enqueue_script(
             'pexpress-admin',

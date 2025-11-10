@@ -19,11 +19,12 @@ class PExpress_Admin_Dashboards
 {
 
     /**
-     * Render HR Dashboard page
+     * Render Agency Dashboard page (formerly HR)
      */
-    public function render_hr_dashboard()
+    public function render_agency_dashboard()
     {
-        if (!current_user_can('polar_hr') && !current_user_can('manage_woocommerce')) {
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_hr', $current_user->roles) && !current_user_can('manage_woocommerce')) {
             wp_die(__('You do not have permission to access this page.', 'pexpress'));
         }
 
@@ -35,8 +36,8 @@ class PExpress_Admin_Dashboards
             'meta_value' => 'yes',
         ));
 
-        // Get all delivery, fridge, and distributor users
-        $delivery_users = get_users(array('role' => 'polar_delivery'));
+        // Get all HR (formerly delivery), fridge, and distributor users
+        $hr_users = get_users(array('role' => 'polar_delivery'));
         $fridge_users = get_users(array('role' => 'polar_fridge'));
         $distributor_users = get_users(array('role' => 'polar_distributor'));
 
@@ -44,9 +45,9 @@ class PExpress_Admin_Dashboards
     }
 
     /**
-     * Render Delivery Dashboard page
+     * Render HR Dashboard page (formerly Delivery)
      */
-    public function render_delivery_dashboard()
+    public function render_hr_dashboard()
     {
         $current_user = wp_get_current_user();
         if (!in_array('polar_delivery', $current_user->roles) && !current_user_can('manage_woocommerce')) {
@@ -55,7 +56,7 @@ class PExpress_Admin_Dashboards
 
         $user_id = get_current_user_id();
 
-        // Get orders assigned to this delivery person
+        // Get orders assigned to this HR person
         $assigned_orders = PExpress_Core::get_assigned_orders($user_id, 'delivery');
 
         // Get orders by status

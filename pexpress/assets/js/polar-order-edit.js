@@ -8,6 +8,7 @@
             this.initModificationHistory();
             this.initAddItemModal();
             this.initForwardToHR();
+            this.initRevokeFromHR();
         },
 
         initProductSearch: function () {
@@ -316,6 +317,71 @@
                         })
                         .fail(function () {
                             $feedback.addClass('is-error').text(polarOrderEdit.i18n.forwardError || 'Unable to forward order. Please try again.');
+                        })
+                        .always(function () {
+                            $button.prop('disabled', false).removeClass('is-loading');
+                        });
+                });
+        },
+
+        initRevokeFromHR: function () {
+            $(document)
+                .off('click', '.polar-revoke-forward')
+                .on('click', '.polar-revoke-forward', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const $button = $(this);
+                    const orderId = parseInt($button.data('orderId'), 10);
+                    if (!orderId) {
+                        return;
+                    }
+
+                    if (!confirm(polarOrderEdit.i18n.revokeConfirm || 'Are you sure you want to revoke this order from HR?')) {
+                        return;
+                    }
+
+                    const $feedback = $('.polar-forward-feedback');
+                    const $statusBadge = $('.forward-status-badge');
+                    const $forwardMeta = $('.forward-meta');
+                    const $forwardButton = $('.polar-forward-to-hr');
+                    const $revokeButton = $button;
+
+                    $button.prop('disabled', true).addClass('is-loading');
+                    $feedback.removeClass('is-error is-success').text(polarOrderEdit.i18n.revoking || 'Revoking from HR...');
+
+                    $.ajax({
+                        url: polarOrderEdit.ajaxUrl,
+                        method: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'polar_revoke_order_from_hr',
+                            nonce: polarOrderEdit.nonce,
+                            order_id: orderId,
+                        },
+                    })
+                        .done(function (response) {
+                            if (!response || !response.success) {
+                                const message = response && response.data && response.data.message
+                                    ? response.data.message
+                                    : (polarOrderEdit.i18n.revokeError || 'Unable to revoke order. Please try again.');
+                                $feedback.addClass('is-error').text(message);
+                                return;
+                            }
+
+                            // Update UI
+                            $statusBadge.removeClass('is-forwarded').addClass('is-idle').text(polarOrderEdit.i18n.notForwarded || 'Not Yet Forwarded');
+                            $forwardMeta.remove();
+                            $forwardButton.prop('disabled', false).text(polarOrderEdit.i18n.forwardToHR || 'Forward to HR');
+                            $revokeButton.remove();
+                            $feedback.addClass('is-success').text(polarOrderEdit.i18n.revokeSuccess || 'Order revoked from HR successfully.');
+
+                            setTimeout(function () {
+                                $feedback.removeClass('is-success').text('');
+                            }, 3000);
+                        })
+                        .fail(function () {
+                            $feedback.addClass('is-error').text(polarOrderEdit.i18n.revokeError || 'Unable to revoke order. Please try again.');
                         })
                         .always(function () {
                             $button.prop('disabled', false).removeClass('is-loading');

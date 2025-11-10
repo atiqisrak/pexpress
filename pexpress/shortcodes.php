@@ -13,14 +13,15 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * HR Dashboard Shortcode
+ * Agency Dashboard Shortcode (formerly HR)
  */
-add_shortcode('polar_hr', 'polar_hr_dashboard_shortcode');
-function polar_hr_dashboard_shortcode($atts)
+add_shortcode('polar_hr', 'polar_agency_dashboard_shortcode');
+function polar_agency_dashboard_shortcode($atts)
 {
-    // Check capability
-    if (!current_user_can('polar_hr') && !current_user_can('manage_woocommerce')) {
-        return '<p>' . esc_html__('Access denied. You must be logged in as Polar HR.', 'pexpress') . '</p>';
+    // Check role
+    $current_user = wp_get_current_user();
+    if (!in_array('polar_hr', $current_user->roles) && !current_user_can('manage_woocommerce')) {
+        return '<p>' . esc_html__('Access denied. You must be logged in as Polar Agency.', 'pexpress') . '</p>';
     }
 
     // Get orders needing assignment
@@ -31,8 +32,8 @@ function polar_hr_dashboard_shortcode($atts)
         'meta_value' => 'yes',
     ));
 
-    // Get all delivery, fridge, and distributor users
-    $delivery_users = get_users(array('role' => 'polar_delivery'));
+    // Get all HR (formerly delivery), fridge, and distributor users
+    $hr_users = get_users(array('role' => 'polar_delivery'));
     $fridge_users = get_users(array('role' => 'polar_fridge'));
     $distributor_users = get_users(array('role' => 'polar_distributor'));
 
@@ -42,19 +43,19 @@ function polar_hr_dashboard_shortcode($atts)
 }
 
 /**
- * Delivery Person Dashboard Shortcode
+ * HR Dashboard Shortcode (formerly Delivery)
  */
-add_shortcode('polar_delivery', 'polar_delivery_dashboard_shortcode');
-function polar_delivery_dashboard_shortcode($atts)
+add_shortcode('polar_delivery', 'polar_hr_dashboard_shortcode');
+function polar_hr_dashboard_shortcode($atts)
 {
     $current_user = wp_get_current_user();
     if (!in_array('polar_delivery', $current_user->roles) && !current_user_can('manage_woocommerce')) {
-        return '<p>' . esc_html__('Access denied. You must be logged in as Polar Delivery.', 'pexpress') . '</p>';
+        return '<p>' . esc_html__('Access denied. You must be logged in as Polar HR.', 'pexpress') . '</p>';
     }
 
     $user_id = get_current_user_id();
 
-    // Get orders assigned to this delivery person
+    // Get orders assigned to this HR person
     $assigned_orders = PExpress_Core::get_assigned_orders($user_id, 'delivery');
 
     // Get orders by status

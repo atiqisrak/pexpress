@@ -40,9 +40,9 @@ class PExpress_Admin_Menus
         $main_capability = 'read'; // Basic read capability
 
         // Determine which dashboard to show based on role
-        $main_page_callback = 'render_hr_dashboard';
+        $main_page_callback = 'render_agency_dashboard';
         if (in_array('polar_delivery', $current_user->roles)) {
-            $main_page_callback = 'render_delivery_dashboard';
+            $main_page_callback = 'render_hr_dashboard';
         } elseif (in_array('polar_fridge', $current_user->roles)) {
             $main_page_callback = 'render_fridge_dashboard';
         } elseif (in_array('polar_distributor', $current_user->roles)) {
@@ -51,8 +51,23 @@ class PExpress_Admin_Menus
             $main_page_callback = 'render_support_dashboard';
         }
 
+        // Set the main menu title and label based on role
+        $main_menu_title = __('Polar Express', 'pexpress');
+        $main_menu_label = __('Polar Express', 'pexpress');
+
+        if (in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) {
+            $main_menu_title = __('Agency Dashboard', 'pexpress');
+            $main_menu_label = __('Agency Dashboard', 'pexpress');
+        } elseif (in_array('polar_delivery', $current_user->roles)) {
+            $main_menu_title = __('HR Dashboard', 'pexpress');
+            $main_menu_label = __('HR Dashboard', 'pexpress');
+        } elseif (in_array('polar_support', $current_user->roles)) {
+            $main_menu_title = __('Support Portal', 'pexpress');
+            $main_menu_label = __('Support Portal', 'pexpress');
+        }
+
         add_menu_page(
-            __('Polar Express', 'pexpress'),
+            $main_menu_title,
             __('Polar Express', 'pexpress'),
             $main_capability,
             'polar-express',
@@ -61,27 +76,27 @@ class PExpress_Admin_Menus
             56
         );
 
-        // HR Dashboard (only for HR and managers)
+        // Add explicit submenu for Agency Dashboard so it appears in the submenu list
         if (in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) {
             add_submenu_page(
                 'polar-express',
-                __('HR Dashboard', 'pexpress'),
-                __('HR Dashboard', 'pexpress'),
-                'polar_hr',
+                __('Agency Dashboard', 'pexpress'),
+                __('Agency Dashboard', 'pexpress'),
+                'read',
                 'polar-express',
-                array($this, 'render_hr_dashboard')
+                array($this, 'render_agency_dashboard')
             );
         }
 
-        // Delivery Dashboard
-        if (in_array('polar_delivery', $current_user->roles) || current_user_can('manage_woocommerce')) {
+        // HR Dashboard (formerly Delivery) - Only show for HR users, not for Agency users
+        if (in_array('polar_delivery', $current_user->roles) || (current_user_can('manage_woocommerce') && !in_array('polar_hr', $current_user->roles))) {
             add_submenu_page(
                 'polar-express',
-                __('Delivery Dashboard', 'pexpress'),
-                __('Delivery', 'pexpress'),
+                __('HR Dashboard', 'pexpress'),
+                __('HR Dashboard', 'pexpress'),
                 'read',
                 'polar-express-delivery',
-                array($this, 'render_delivery_dashboard')
+                array($this, 'render_hr_dashboard')
             );
         }
 
@@ -90,7 +105,7 @@ class PExpress_Admin_Menus
             add_submenu_page(
                 'polar-express',
                 __('Fridge Dashboard', 'pexpress'),
-                __('Fridge', 'pexpress'),
+                __('Fridge Dashboard', 'pexpress'),
                 'read',
                 'polar-express-fridge',
                 array($this, 'render_fridge_dashboard')
@@ -101,8 +116,8 @@ class PExpress_Admin_Menus
         if (in_array('polar_distributor', $current_user->roles) || current_user_can('manage_woocommerce')) {
             add_submenu_page(
                 'polar-express',
-                __('Distributor Dashboard', 'pexpress'),
-                __('Distributor', 'pexpress'),
+                __('Distributor Fulfills', 'pexpress'),
+                __('Distributor Fulfills', 'pexpress'),
                 'read',
                 'polar-express-distributor',
                 array($this, 'render_distributor_dashboard')
@@ -113,8 +128,8 @@ class PExpress_Admin_Menus
         if (in_array('polar_support', $current_user->roles) || current_user_can('manage_woocommerce')) {
             add_submenu_page(
                 'polar-express',
-                __('Support Dashboard', 'pexpress'),
-                __('Support', 'pexpress'),
+                __('Support Portal', 'pexpress'),
+                __('Support Portal', 'pexpress'),
                 'read',
                 'polar-express-support',
                 array($this, 'render_support_dashboard')
@@ -137,11 +152,23 @@ class PExpress_Admin_Menus
         if (in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) {
             add_submenu_page(
                 'polar-express',
-                __('Settings', 'pexpress'),
-                __('Settings', 'pexpress'),
+                __('Configuration', 'pexpress'),
+                __('Configuration', 'pexpress'),
                 'manage_woocommerce',
                 'polar-express-settings',
                 array($this, 'render_settings_page')
+            );
+        }
+
+        // Setup Wizard (HR and Shop Managers only) - Show if setup not completed
+        if ((in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) && !PExpress_Admin_Setup_Wizard::is_setup_completed()) {
+            add_submenu_page(
+                'polar-express',
+                __('Setup Wizard', 'pexpress'),
+                __('Setup Wizard', 'pexpress'),
+                'manage_woocommerce',
+                'polar-express-setup-wizard',
+                array($this, 'render_setup_wizard_page')
             );
         }
 
@@ -171,21 +198,21 @@ class PExpress_Admin_Menus
     }
 
     /**
+     * Render Agency Dashboard page
+     */
+    public function render_agency_dashboard()
+    {
+        $dashboards = new PExpress_Admin_Dashboards();
+        $dashboards->render_agency_dashboard();
+    }
+
+    /**
      * Render HR Dashboard page
      */
     public function render_hr_dashboard()
     {
         $dashboards = new PExpress_Admin_Dashboards();
         $dashboards->render_hr_dashboard();
-    }
-
-    /**
-     * Render Delivery Dashboard page
-     */
-    public function render_delivery_dashboard()
-    {
-        $dashboards = new PExpress_Admin_Dashboards();
-        $dashboards->render_delivery_dashboard();
     }
 
     /**
@@ -249,5 +276,14 @@ class PExpress_Admin_Menus
     {
         $order_manipulation = new PExpress_Admin_Order_Manipulation();
         $order_manipulation->render_order_edit_page();
+    }
+
+    /**
+     * Render Setup Wizard page
+     */
+    public function render_setup_wizard_page()
+    {
+        $wizard = new PExpress_Admin_Setup_Wizard();
+        $wizard->render_setup_wizard();
     }
 }

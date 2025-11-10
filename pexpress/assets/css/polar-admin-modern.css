@@ -1,0 +1,1364 @@
+/**
+ * Polar Express Modern Admin Styles
+ *
+ * @package PExpress
+ * @since 1.0.5
+ */
+
+/* ============================================
+   Modern Design System - Color Palette
+   ============================================ */
+:root {
+  --pexpress-primary: #6366f1;
+  --pexpress-primary-dark: #4f46e5;
+  --pexpress-primary-light: #818cf8;
+  --pexpress-secondary: #06b6d4;
+  --pexpress-secondary-dark: #0891b2;
+  --pexpress-accent: #8b5cf6;
+  --pexpress-success: #10b981;
+  --pexpress-warning: #f59e0b;
+  --pexpress-error: #ef4444;
+  --pexpress-bg: #ffffff;
+  --pexpress-bg-alt: #ffffff;
+  --pexpress-border: #e2e8f0;
+  --pexpress-text: #1e293b;
+  --pexpress-text-light: #64748b;
+  --pexpress-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --pexpress-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================
+   Setup Wizard Styles
+   ============================================ */
+.pexpress-setup-wizard {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--pexpress-bg-alt);
+  min-height: calc(100vh - 32px);
+}
+
+.pexpress-wizard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* Progress Bar */
+.pexpress-wizard-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 60px;
+  position: relative;
+  padding: 0 40px;
+}
+
+.pexpress-progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  z-index: 2;
+}
+
+.pexpress-progress-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--pexpress-bg);
+  border: 3px solid var(--pexpress-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--pexpress-text-light);
+  transition: all 0.3s ease;
+  margin-bottom: 10px;
+}
+
+.pexpress-progress-step.active .pexpress-progress-circle {
+  border-color: var(--pexpress-primary);
+  background: linear-gradient(
+    135deg,
+    var(--pexpress-primary) 0%,
+    var(--pexpress-accent) 100%
+  );
+  color: #fff;
+  transform: scale(1.1);
+  box-shadow: var(--pexpress-shadow);
+}
+
+.pexpress-progress-step.completed .pexpress-progress-circle {
+  border-color: var(--pexpress-success);
+  background: var(--pexpress-success);
+  color: #fff;
+}
+
+.pexpress-step-number {
+  font-size: 18px;
+}
+
+.pexpress-progress-label {
+  font-size: 13px;
+  color: var(--pexpress-text-light);
+  font-weight: 500;
+  text-align: center;
+}
+
+.pexpress-progress-step.active .pexpress-progress-label {
+  color: var(--pexpress-primary);
+  font-weight: 600;
+}
+
+.pexpress-progress-step.completed .pexpress-progress-label {
+  color: var(--pexpress-success);
+}
+
+.pexpress-progress-line {
+  flex: 1;
+  height: 3px;
+  background: var(--pexpress-border);
+  margin: 0 10px -25px;
+  position: relative;
+  z-index: 1;
+}
+
+.pexpress-progress-line.completed {
+  background: linear-gradient(
+    90deg,
+    var(--pexpress-success) 0%,
+    var(--pexpress-primary) 100%
+  );
+}
+
+/* Wizard Content */
+.pexpress-wizard-content {
+  background: var(--pexpress-bg);
+  border-radius: 16px;
+  padding: 50px;
+  box-shadow: var(--pexpress-shadow-lg);
+  margin-bottom: 30px;
+}
+
+.pexpress-wizard-header {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.pexpress-wizard-header h1 {
+  font-size: 36px;
+  font-weight: 700;
+  background: linear-gradient(
+    135deg,
+    var(--pexpress-primary) 0%,
+    var(--pexpress-accent) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 15px;
+}
+
+.pexpress-wizard-subtitle {
+  font-size: 18px;
+  color: var(--pexpress-text-light);
+  margin: 0;
+}
+
+.pexpress-success-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--pexpress-success) 0%, #34d399 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 700;
+  margin: 0 auto 30px;
+  box-shadow: var(--pexpress-shadow-lg);
+}
+
+/* Feature Grid */
+.pexpress-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.pexpress-feature-card {
+  background: var(--pexpress-bg-alt);
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.pexpress-feature-card:hover {
+  border-color: var(--pexpress-primary);
+  transform: translateY(-5px);
+  box-shadow: var(--pexpress-shadow-lg);
+}
+
+.pexpress-feature-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.pexpress-feature-card h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--pexpress-text);
+  margin: 0 0 15px;
+}
+
+.pexpress-feature-card p {
+  color: var(--pexpress-text-light);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Info Box */
+.pexpress-info-box {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left: 4px solid var(--pexpress-primary);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 30px 0;
+}
+
+.pexpress-info-box.success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-left-color: var(--pexpress-success);
+}
+
+.pexpress-info-box h3,
+.pexpress-info-box h4 {
+  margin: 0 0 15px;
+  color: var(--pexpress-text);
+  font-size: 18px;
+}
+
+.pexpress-info-box ul {
+  margin: 15px 0 0;
+  padding-left: 25px;
+}
+
+.pexpress-info-box li {
+  margin: 8px 0;
+  color: var(--pexpress-text-light);
+  line-height: 1.6;
+}
+
+.pexpress-info-box p {
+  margin: 0;
+  color: var(--pexpress-text-light);
+  line-height: 1.6;
+}
+
+.pexpress-info-box .dashicons {
+  color: var(--pexpress-primary);
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+.pexpress-info-box.success .dashicons {
+  color: var(--pexpress-success);
+}
+
+/* Role Assignment */
+.pexpress-roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.pexpress-role-card {
+  background: var(--pexpress-bg-alt);
+  border-radius: 12px;
+  padding: 25px;
+  border: 2px solid var(--pexpress-border);
+  transition: all 0.3s ease;
+}
+
+.pexpress-role-card:hover {
+  border-color: var(--pexpress-primary);
+  box-shadow: var(--pexpress-shadow);
+}
+
+.pexpress-role-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--pexpress-text);
+  margin: 0 0 10px;
+}
+
+.pexpress-role-description {
+  font-size: 14px;
+  color: var(--pexpress-text-light);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.pexpress-role-users {
+  margin-top: 15px;
+}
+
+.pexpress-user-badge {
+  background: var(--pexpress-bg);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--pexpress-border);
+  display: flex;
+  flex-direction: column;
+}
+
+.pexpress-user-badge strong {
+  color: var(--pexpress-text);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.pexpress-user-badge span {
+  color: var(--pexpress-text-light);
+  font-size: 12px;
+}
+
+.pexpress-user-count {
+  font-size: 12px;
+  color: var(--pexpress-text-light);
+  margin: 10px 0 0;
+  font-style: italic;
+}
+
+.pexpress-no-users {
+  text-align: center;
+  color: var(--pexpress-text-light);
+  font-size: 14px;
+  padding: 20px;
+  background: var(--pexpress-bg);
+  border-radius: 8px;
+  border: 2px dashed var(--pexpress-border);
+  margin: 0;
+}
+
+/* Shortcodes Grid */
+.pexpress-shortcodes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.pexpress-shortcode-card {
+  background: var(--pexpress-bg-alt);
+  border-radius: 12px;
+  padding: 25px;
+  border: 2px solid var(--pexpress-border);
+  transition: all 0.3s ease;
+}
+
+.pexpress-shortcode-card:hover {
+  border-color: var(--pexpress-primary);
+  box-shadow: var(--pexpress-shadow);
+}
+
+.pexpress-shortcode-card h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--pexpress-text);
+  margin: 0 0 10px;
+}
+
+.pexpress-shortcode-card > p {
+  color: var(--pexpress-text-light);
+  font-size: 14px;
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.pexpress-shortcode-box {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.pexpress-shortcode-box code {
+  color: #10b981;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  flex: 1;
+  margin-right: 10px;
+}
+
+.pexpress-copy-btn {
+  background: transparent;
+  border: 2px solid var(--pexpress-primary);
+  color: var(--pexpress-primary);
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+}
+
+.pexpress-copy-btn:hover {
+  background: var(--pexpress-primary);
+  color: #fff;
+}
+
+.pexpress-copy-btn.copied {
+  background: var(--pexpress-success);
+  border-color: var(--pexpress-success);
+  color: #fff;
+}
+
+.pexpress-page-suggestion {
+  font-size: 12px;
+  color: var(--pexpress-text-light);
+  margin: 0;
+}
+
+.pexpress-page-suggestion code {
+  background: var(--pexpress-bg);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 5px;
+}
+
+/* Instructions */
+.pexpress-instructions-list {
+  background: var(--pexpress-bg-alt);
+  border-radius: 12px;
+  padding: 30px 30px 30px 50px;
+  margin: 0 0 30px;
+  border-left: 4px solid var(--pexpress-primary);
+}
+
+.pexpress-instructions-list li {
+  margin: 15px 0;
+  color: var(--pexpress-text);
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+/* SMS Status */
+.pexpress-sms-status {
+  margin: 30px 0;
+}
+
+.pexpress-sms-status .pexpress-info-box {
+  display: flex;
+  align-items: flex-start;
+}
+
+.pexpress-sms-status .dashicons {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  margin-right: 15px;
+  margin-top: 2px;
+}
+
+/* Completion Summary */
+.pexpress-next-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.pexpress-next-step-card {
+  background: var(--pexpress-bg-alt);
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  border: 2px solid var(--pexpress-border);
+  transition: all 0.3s ease;
+}
+
+.pexpress-next-step-card:hover {
+  border-color: var(--pexpress-primary);
+  transform: translateY(-5px);
+  box-shadow: var(--pexpress-shadow-lg);
+}
+
+.pexpress-next-step-card .dashicons {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  color: var(--pexpress-primary);
+  margin-bottom: 20px;
+}
+
+.pexpress-next-step-card h4 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--pexpress-text);
+  margin: 0 0 15px;
+}
+
+.pexpress-next-step-card p {
+  color: var(--pexpress-text-light);
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+/* Buttons */
+.pexpress-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  line-height: 1.5;
+}
+
+.pexpress-btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--pexpress-primary) 0%,
+    var(--pexpress-accent) 100%
+  );
+  color: #fff;
+  box-shadow: var(--pexpress-shadow);
+}
+
+.pexpress-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pexpress-shadow-lg);
+  color: #fff;
+}
+
+.pexpress-btn-secondary {
+  background: var(--pexpress-bg);
+  color: var(--pexpress-primary);
+  border: 2px solid var(--pexpress-primary);
+}
+
+.pexpress-btn-secondary:hover {
+  background: var(--pexpress-primary);
+  color: #fff;
+}
+
+.pexpress-btn-link {
+  background: transparent;
+  color: var(--pexpress-text-light);
+  padding: 12px 0;
+}
+
+.pexpress-btn-link:hover {
+  color: var(--pexpress-primary);
+}
+
+.pexpress-btn-large {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+/* Navigation */
+.pexpress-wizard-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30px 0;
+  background: var(--pexpress-bg);
+  border-radius: 12px;
+  padding: 30px 50px;
+  box-shadow: var(--pexpress-shadow);
+}
+
+.pexpress-wizard-actions {
+  flex: 1;
+  text-align: center;
+}
+
+.pexpress-wizard-actions-center {
+  text-align: center;
+  margin: 30px 0;
+}
+
+/* ============================================
+   Modern Admin Pages Styles
+   ============================================ */
+
+/* Settings Page */
+.polar-role-management-section,
+.polar-settings-section {
+  background: var(--pexpress-bg);
+  border-radius: 12px;
+  padding: 30px;
+  margin: 25px 0;
+  box-shadow: var(--pexpress-shadow);
+  border: 1px solid var(--pexpress-border);
+}
+
+.polar-role-management-section h2,
+.polar-settings-section h2 {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(
+    135deg,
+    var(--pexpress-primary) 0%,
+    var(--pexpress-accent) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 20px;
+}
+
+.polar-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.polar-user-item {
+  background: var(--pexpress-bg-alt);
+  border: 2px solid var(--pexpress-border);
+  border-radius: 8px;
+  padding: 15px;
+  transition: all 0.3s ease;
+}
+
+.polar-user-item:hover {
+  border-color: var(--pexpress-primary);
+  box-shadow: var(--pexpress-shadow);
+}
+
+.polar-remove-user-btn {
+  background: transparent;
+  border: 2px solid var(--pexpress-error);
+  color: var(--pexpress-error);
+  border-radius: 6px;
+  padding: 6px 12px;
+  transition: all 0.3s ease;
+}
+
+.polar-remove-user-btn:hover {
+  background: var(--pexpress-error);
+  color: #fff;
+}
+
+/* Modern Table Styles */
+.wp-list-table {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--pexpress-shadow);
+  border: 1px solid var(--pexpress-border);
+}
+
+.wp-list-table thead th {
+  background: linear-gradient(135deg, var(--pexpress-bg-alt) 0%, #f1f5f9 100%);
+  color: var(--pexpress-text);
+  font-weight: 600;
+  padding: 15px;
+  border-bottom: 2px solid var(--pexpress-border);
+}
+
+.wp-list-table tbody td {
+  padding: 15px;
+  border-bottom: 1px solid var(--pexpress-border);
+}
+
+.wp-list-table tbody tr:hover {
+  background: var(--pexpress-bg-alt);
+}
+
+/* Form Fields */
+.regular-text,
+.small-text {
+  border: 2px solid var(--pexpress-border);
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.regular-text:focus,
+.small-text:focus {
+  border-color: var(--pexpress-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  outline: none;
+}
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--pexpress-primary);
+}
+
+input[type="password"] {
+  border: 2px solid var(--pexpress-border);
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+input[type="password"]:focus {
+  border-color: var(--pexpress-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  outline: none;
+}
+
+/* WordPress Buttons - Modern Style */
+.button,
+.button-primary,
+.button-secondary {
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.button-primary {
+  background: linear-gradient(
+    135deg,
+    var(--pexpress-primary) 0%,
+    var(--pexpress-accent) 100%
+  );
+  color: #fff;
+  box-shadow: var(--pexpress-shadow);
+}
+
+.button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pexpress-shadow-lg);
+  color: #fff;
+}
+
+.button-secondary {
+  background: var(--pexpress-bg);
+  color: var(--pexpress-primary);
+  border: 2px solid var(--pexpress-primary);
+}
+
+.button-secondary:hover {
+  background: var(--pexpress-primary);
+  color: #fff;
+}
+
+/* Setup Guideline & Changelog Pages */
+.polar-setup-guideline,
+.polar-changelog {
+  max-width: 1200px;
+  margin: 20px auto;
+}
+
+.polar-setup-header,
+.polar-changelog-header {
+  background: linear-gradient(
+    135deg,
+    var(--pexpress-primary) 0%,
+    var(--pexpress-accent) 100%
+  );
+  color: #fff;
+  padding: 50px;
+  border-radius: 16px;
+  margin-bottom: 30px;
+  box-shadow: var(--pexpress-shadow-lg);
+}
+
+.polar-setup-header h1,
+.polar-changelog-header h1 {
+  color: #fff;
+  margin: 0 0 15px;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.polar-setup-header p,
+.polar-changelog-header p {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 18px;
+  margin: 0;
+}
+
+.polar-setup-section,
+.polar-version-section {
+  background: var(--pexpress-bg);
+  padding: 35px;
+  margin-bottom: 30px;
+  border-radius: 12px;
+  box-shadow: var(--pexpress-shadow);
+  border: 1px solid var(--pexpress-border);
+}
+
+.polar-setup-section h2,
+.polar-version-header h2 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--pexpress-text);
+  margin: 0 0 20px;
+  padding-bottom: 15px;
+  border-bottom: 3px solid var(--pexpress-primary);
+}
+
+.polar-shortcode-card {
+  background: var(--pexpress-bg-alt);
+  border: 2px solid var(--pexpress-border);
+  border-radius: 12px;
+  padding: 25px;
+  margin: 20px 0;
+  transition: all 0.3s ease;
+}
+
+.polar-shortcode-card:hover {
+  border-color: var(--pexpress-primary);
+  box-shadow: var(--pexpress-shadow);
+}
+
+.polar-shortcode-code {
+  background: #1e293b;
+  color: var(--pexpress-success);
+  padding: 15px;
+  border-radius: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  margin: 15px 0;
+  word-break: break-all;
+}
+
+.polar-copy-btn {
+  background: linear-gradient(
+    135deg,
+    var(--pexpress-primary) 0%,
+    var(--pexpress-accent) 100%
+  );
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+}
+
+.polar-copy-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--pexpress-shadow);
+}
+
+.polar-copy-btn.copied {
+  background: var(--pexpress-success);
+}
+
+/* ============================================
+   Mobile Responsiveness
+   ============================================ */
+@media (max-width: 768px) {
+  .pexpress-wizard-container {
+    padding: 20px 15px;
+  }
+
+  .pexpress-wizard-progress {
+    padding: 0 20px;
+    margin-bottom: 40px;
+  }
+
+  .pexpress-progress-circle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .pexpress-progress-label {
+    font-size: 11px;
+  }
+
+  .pexpress-wizard-content {
+    padding: 30px 20px;
+  }
+
+  .pexpress-wizard-header h1 {
+    font-size: 28px;
+  }
+
+  .pexpress-wizard-subtitle {
+    font-size: 16px;
+  }
+
+  .pexpress-feature-grid,
+  .pexpress-roles-grid,
+  .pexpress-shortcodes-grid,
+  .pexpress-next-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .pexpress-wizard-navigation {
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+  }
+
+  .pexpress-wizard-navigation > * {
+    width: 100%;
+    text-align: center;
+  }
+
+  .polar-setup-header,
+  .polar-changelog-header {
+    padding: 30px 20px;
+  }
+
+  .polar-setup-header h1,
+  .polar-changelog-header h1 {
+    font-size: 28px;
+  }
+
+  .polar-setup-section,
+  .polar-version-section {
+    padding: 20px;
+  }
+
+  .polar-role-management-section,
+  .polar-settings-section {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pexpress-wizard-progress {
+    padding: 0 10px;
+  }
+
+  .pexpress-progress-circle {
+    width: 35px;
+    height: 35px;
+  }
+
+  .pexpress-step-number {
+    font-size: 14px;
+  }
+
+  .pexpress-progress-label {
+    font-size: 10px;
+  }
+
+  .pexpress-wizard-content {
+    padding: 20px 15px;
+  }
+
+  .pexpress-wizard-header h1 {
+    font-size: 24px;
+  }
+
+  .pexpress-feature-icon {
+    font-size: 36px;
+  }
+
+  .pexpress-wizard-navigation {
+    padding: 15px;
+  }
+
+  .pexpress-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+/* ============================================
+   Admin Dashboard Styles (Admin Only)
+   ============================================ */
+/* Hide default WordPress page title for Polar Express dashboards */
+.polar-dashboard.wrap > h1:not(.polar-dashboard-title),
+.polar-dashboard.wrap > h1.page-title:not(.polar-dashboard-title) {
+  display: none;
+}
+
+.wrap h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+/* Ensure compatibility with WordPress admin */
+#wpbody-content {
+  padding-top: 20px;
+  background: var(--pexpress-bg-alt);
+}
+
+/* Modal Styles */
+#polar-add-user-modal {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+#polar-add-user-modal > div {
+  background: var(--pexpress-bg);
+  border-radius: 16px;
+  box-shadow: var(--pexpress-shadow-lg);
+  max-width: 800px;
+  width: 95%;
+}
+
+/* Smooth Transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px;
+}
+
+/* ============================================
+   History Cards Design
+   ============================================ */
+.polar-history-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.polar-history-card {
+  background: var(--pexpress-bg);
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: var(--pexpress-shadow);
+  border: 1px solid var(--pexpress-border);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.polar-history-card:hover {
+  box-shadow: var(--pexpress-shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--pexpress-primary);
+}
+
+.polar-history-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--pexpress-border);
+}
+
+.polar-history-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.polar-order-link {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--pexpress-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.polar-order-link:hover {
+  color: var(--pexpress-primary-dark);
+}
+
+.polar-customer-name {
+  font-size: 14px;
+  color: var(--pexpress-text-light);
+}
+
+.polar-history-date {
+  font-size: 12px;
+  color: var(--pexpress-text-light);
+  font-weight: 500;
+}
+
+.polar-history-card-body {
+  flex: 1;
+  margin-bottom: 20px;
+}
+
+.polar-status-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.polar-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.polar-status-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pexpress-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.polar-status-empty {
+  color: var(--pexpress-text-light);
+  font-style: italic;
+  font-size: 14px;
+}
+
+.polar-status-item small {
+  font-size: 11px;
+  color: var(--pexpress-text-light);
+  margin-top: 4px;
+}
+
+.polar-history-card-footer {
+  padding-top: 15px;
+  border-top: 1px solid var(--pexpress-border);
+}
+
+/* History Modal */
+.polar-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.polar-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.polar-modal-content {
+  position: relative;
+  background: var(--pexpress-bg);
+  border-radius: 16px;
+  max-width: 800px;
+  width: 95%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: var(--pexpress-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+.polar-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px 30px;
+  border-bottom: 2px solid var(--pexpress-border);
+  background: linear-gradient(135deg, var(--pexpress-bg-alt) 0%, #f1f5f9 100%);
+}
+
+.polar-modal-header h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--pexpress-text);
+}
+
+.polar-modal-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  color: var(--pexpress-text-light);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.polar-modal-close:hover {
+  background: var(--pexpress-bg);
+  color: var(--pexpress-error);
+}
+
+.polar-modal-body {
+  padding: 30px;
+  overflow-y: auto;
+  max-height: calc(90vh - 100px);
+}
+
+.polar-history-details-content h4 {
+  margin: 0 0 25px;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--pexpress-text);
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--pexpress-primary);
+}
+
+.polar-history-section {
+  margin-bottom: 30px;
+  background: var(--pexpress-bg-alt);
+  border-radius: 8px;
+  padding: 20px;
+  border-left: 4px solid var(--pexpress-primary);
+}
+
+.polar-history-section strong {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pexpress-text);
+  margin-bottom: 15px;
+}
+
+.polar-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.polar-history-entry {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pexpress-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.polar-history-entry:last-child {
+  border-bottom: none;
+}
+
+.polar-history-entry .status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--pexpress-primary);
+  color: #fff;
+  margin-bottom: 5px;
+}
+
+.polar-history-entry .history-note {
+  color: var(--pexpress-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.polar-history-entry .history-meta {
+  font-size: 12px;
+  color: var(--pexpress-text-light);
+  font-style: italic;
+}
+
+/* Status Chips */
+.status-chip {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-chip.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-chip.status-assigned {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-chip.status-meet_point_arrived,
+.status-chip.status-delivery_location_arrived {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-chip.status-service_in_progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-chip.status-service_complete,
+.status-chip.status-customer_served {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-chip.status-fridge_drop,
+.status-chip.status-fridge_collected {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.status-chip.status-fridge_returned {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-chip.status-distributor_prep {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-chip.status-out_for_delivery {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-chip.status-handoff_complete {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* Mobile Responsive for History Cards */
+@media (max-width: 768px) {
+  .polar-history-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .polar-status-row {
+    grid-template-columns: 1fr;
+  }
+
+  .polar-modal-content {
+    width: 98%;
+    max-height: 95vh;
+  }
+
+  .polar-modal-header {
+    padding: 20px;
+  }
+
+  .polar-modal-body {
+    padding: 20px;
+  }
+}

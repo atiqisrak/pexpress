@@ -40,6 +40,7 @@ class PExpress_Admin_Order_Manipulation
         add_action('wp_ajax_polar_recalculate_order_totals', array($this, 'ajax_recalculate_order_totals'));
         add_action('wp_ajax_polar_search_products', array($this, 'ajax_search_products'));
         add_action('wp_ajax_polar_forward_order_to_hr', array($this, 'ajax_forward_order_to_hr'));
+        add_action('wp_ajax_polar_revoke_order_from_hr', array($this, 'ajax_revoke_order_from_hr'));
 
         // Allow WooCommerce product search for our users
         add_filter('woocommerce_json_search_found_products', array($this, 'allow_product_search'), 10, 1);
@@ -935,6 +936,61 @@ class PExpress_Admin_Order_Manipulation
             'forwarded_by' => $user->display_name,
             'note' => $note,
             'summary' => $forward_summary,
+        ));
+    }
+
+    /**
+     * AJAX handler: Revoke order from HR
+     */
+    public function ajax_revoke_order_from_hr()
+    {
+        $this->verify_request();
+
+        $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+        if (!$order_id) {
+            wp_send_json_error(array('message' => __('Invalid order ID.', 'pexpress')));
+        }
+
+        if ($this->is_hr_only_user()) {
+            wp_send_json_error(array('message' => __('Insufficient permissions.', 'pexpress')));
+        }
+
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            wp_send_json_error(array('message' => __('Order not found.', 'pexpress')));
+        }
+
+        $user = wp_get_current_user();
+
+        // Remove forward flags
+        PExpress_Core::update_order_meta($order_id, '_polar_needs_assignment', 'no');
+        PExpress_Core::update_order_meta($order_id, '_polar_forwarded_by', '');
+        PExpress_Core::update_order_meta($order_id, '_polar_forwarded_at', '');
+        PExpress_Core::update_order_meta($order_id, '_polar_forward_note', '');
+
+        $order->add_order_note(
+            sprintf(
+                /* translators: %s: user name */
+                __('Revoked from HR by %s.', 'pexpress'),
+                $user->display_name
+            ),
+            false,
+            true
+        );
+
+        $this->log_order_modification(
+            $order_id,
+            'revoked_from_hr',
+            null,
+            array(
+                'revoked_by' => $user->display_name,
+            ),
+            $order->get_total(),
+            $order->get_status()
+        );
+
+        wp_send_json_success(array(
+            'message' => __('Order revoked from HR successfully.', 'pexpress'),
         ));
     }
 
