@@ -259,6 +259,13 @@ class PExpress
         $delivery_user_id   = isset($_POST['delivery_user_id']) ? absint($_POST['delivery_user_id']) : 0;
         $fridge_user_id     = isset($_POST['fridge_user_id']) ? absint($_POST['fridge_user_id']) : 0;
         $distributor_user_id = isset($_POST['distributor_user_id']) ? absint($_POST['distributor_user_id']) : 0;
+        $meeting_type       = isset($_POST['meeting_type']) ? sanitize_text_field($_POST['meeting_type']) : 'meet_point';
+        $meeting_location   = isset($_POST['meeting_location']) ? sanitize_text_field($_POST['meeting_location']) : '';
+        $meeting_datetime   = isset($_POST['meeting_datetime']) ? sanitize_text_field($_POST['meeting_datetime']) : '';
+        $fridge_asset_id    = isset($_POST['fridge_asset_id']) ? sanitize_text_field($_POST['fridge_asset_id']) : '';
+        $delivery_note      = isset($_POST['delivery_instructions']) ? sanitize_textarea_field($_POST['delivery_instructions']) : '';
+        $fridge_note        = isset($_POST['fridge_instructions']) ? sanitize_textarea_field($_POST['fridge_instructions']) : '';
+        $distributor_note   = isset($_POST['distributor_instructions']) ? sanitize_textarea_field($_POST['distributor_instructions']) : '';
         $fridge_return_date = isset($_POST['fridge_return_date']) ? sanitize_text_field($_POST['fridge_return_date']) : '';
         $assignment_note   = isset($_POST['assignment_note']) ? sanitize_textarea_field($_POST['assignment_note']) : '';
 
@@ -286,6 +293,27 @@ class PExpress
 
         if ($assignment_note) {
             PExpress_Core::update_order_meta($order_id, '_polar_assignment_note', $assignment_note);
+        }
+
+        // Persist meeting configuration
+        PExpress_Core::update_order_meta($order_id, '_polar_meeting_type', in_array($meeting_type, array('meet_point', 'delivery_location'), true) ? $meeting_type : 'meet_point');
+        PExpress_Core::update_order_meta($order_id, '_polar_meeting_location', $meeting_location);
+        PExpress_Core::update_order_meta($order_id, '_polar_meeting_datetime', $meeting_datetime);
+
+        if (!empty($fridge_asset_id)) {
+            PExpress_Core::update_order_meta($order_id, '_polar_fridge_asset_id', $fridge_asset_id);
+        }
+
+        if (!empty($delivery_note)) {
+            PExpress_Core::update_order_meta($order_id, '_polar_instructions_delivery', $delivery_note);
+        }
+
+        if (!empty($fridge_note)) {
+            PExpress_Core::update_order_meta($order_id, '_polar_instructions_fridge', $fridge_note);
+        }
+
+        if (!empty($distributor_note)) {
+            PExpress_Core::update_order_meta($order_id, '_polar_instructions_distributor', $distributor_note);
         }
 
         // Mark as assigned
@@ -343,8 +371,48 @@ class PExpress
             wp_send_json_error(array('message' => __('Status is required.', 'pexpress')));
         }
 
-        // Validate status and permissions
-        $allowed_statuses = array('polar-out', 'polar-delivered', 'fridge-collected', 'fulfilled');
+        // Determine role-based mapping
+        $role_status_map = array(
+            'polar_delivery' => array(
+                'meet_point_arrived'      => 'wc-polar-meet-point',
+                'delivery_location_arrived' => 'wc-polar-delivery-location',
+                'service_in_progress'     => 'wc-polar-service-progress',
+                'service_complete'        => 'wc-polar-service-complete',
+                'customer_served'         => 'wc-polar-delivered',
+            ),
+            'polar_fridge' => array(
+                'fridge_drop'      => 'wc-polar-fridge-drop',
+                'fridge_collected' => 'wc-polar-fridge-back',
+                'fridge_returned'  => 'wc-polar-fridge-returned',
+            ),
+            'polar_distributor' => array(
+                'distributor_prep'     => 'wc-polar-distributor-prep',
+                'out_for_delivery'     => 'wc-polar-out',
+                'handoff_complete'     => 'wc-polar-distributor-complete',
+            ),
+        );
+
+        $general_status_map = array(
+            'service_wrap' => 'wc-polar-complete',
+        );
+
+        $matched_role = '';
+        foreach ($role_status_map as $role_key => $map) {
+            if (in_array($role_key, $user->roles, true)) {
+                $matched_role = $role_key;
+                break;
+            }
+        }
+
+        $allowed_statuses = array();
+        if ($matched_role && isset($role_status_map[$matched_role])) {
+            $allowed_statuses = array_merge($allowed_statuses, array_keys($role_status_map[$matched_role]));
+        }
+
+        if (current_user_can('manage_woocommerce') || current_user_can('polar_hr')) {
+            $allowed_statuses = array_merge($allowed_statuses, array_keys($general_status_map));
+        }
+
         if (!in_array($new_status, $allowed_statuses, true)) {
             wp_send_json_error(array('message' => __('Invalid status.', 'pexpress')));
         }
@@ -363,19 +431,123 @@ class PExpress
             wp_send_json_error(array('message' => __('You are not assigned to this order.', 'pexpress')));
         }
 
-        // Update status
-        $status_map = array(
-            'polar-out'        => 'wc-polar-out',
-            'polar-delivered' => 'wc-polar-delivered',
-            'fridge-collected' => 'wc-polar-fridge-back',
-            'fulfilled'       => 'completed',
+        // Map status to WooCommerce status
+        $wc_status = '';
+        if ($matched_role && isset($role_status_map[$matched_role][$new_status])) {
+            $wc_status = $role_status_map[$matched_role][$new_status];
+        } elseif (isset($general_status_map[$new_status])) {
+            $wc_status = $general_status_map[$new_status];
+        }
+
+        if (empty($wc_status)) {
+            wp_send_json_error(array('message' => __('Unable to resolve status mapping.', 'pexpress')));
+        }
+
+        // Enforce sequential workflow for roles
+        $sequence_map = array(
+            'polar_distributor' => array(
+                'wc-processing',
+                'wc-polar-assigned',
+                'wc-polar-distributor-prep',
+                'wc-polar-out',
+                'wc-polar-distributor-complete',
+            ),
+            'polar_delivery' => array(
+                'wc-polar-assigned',
+                'wc-polar-distributor-complete',
+                'wc-polar-meet-point',
+                'wc-polar-delivery-location',
+                'wc-polar-service-progress',
+                'wc-polar-service-complete',
+                'wc-polar-delivered',
+            ),
+            'polar_fridge' => array(
+                'wc-polar-assigned',
+                'wc-polar-fridge-drop',
+                'wc-polar-fridge-back',
+                'wc-polar-fridge-returned',
+            ),
         );
 
-        $wc_status = isset($status_map[$new_status]) ? $status_map[$new_status] : $new_status;
+        if ($matched_role && isset($sequence_map[$matched_role])) {
+            $current_status = 'wc-' . $order->get_status();
+            $sequence       = $sequence_map[$matched_role];
+            $current_index  = array_search($current_status, $sequence, true);
+            $new_index      = array_search($wc_status, $sequence, true);
+
+            if ($new_index === false) {
+                // Allow statuses outside sequence if explicitly mapped (e.g., admin overrides)
+                $current_index = false;
+            }
+
+            if ($new_index !== false && $current_index !== false && $new_index < $current_index) {
+                wp_send_json_error(array('message' => __('You cannot move backwards in the workflow.', 'pexpress')));
+            }
+        }
+
+        // Persist role progress tracking
+        if ($matched_role) {
+            $progress_meta_map = array(
+                'polar_delivery'    => '_polar_delivery_status',
+                'polar_fridge'      => '_polar_fridge_status',
+                'polar_distributor' => '_polar_distributor_status',
+            );
+
+            if (isset($progress_meta_map[$matched_role])) {
+                update_post_meta($order_id, $progress_meta_map[$matched_role], $wc_status);
+            }
+        }
+
+        // Update status with note
         $display_name = $user->display_name ?: $user->user_login ?: __('User', 'pexpress');
         $order->update_status($wc_status, sprintf(__('Status updated by %s.', 'pexpress'), $display_name));
 
+        // If all tasks complete, mark order complete for overview
+        self::maybe_mark_order_complete($order);
+
         wp_send_json_success(array('message' => __('Status updated successfully.', 'pexpress')));
+    }
+
+    /**
+     * Check role progress and mark order complete if criteria met
+     *
+     * @param WC_Order $order WooCommerce order.
+     * @return void
+     */
+    private static function maybe_mark_order_complete($order)
+    {
+        if (!$order instanceof WC_Order) {
+            return;
+        }
+
+        $order_id = $order->get_id();
+
+        $delivery_done    = in_array($order->get_status(), array('polar-service-complete', 'polar-delivered', 'polar-complete', 'completed'), true);
+        $fridge_status    = $order->get_status();
+        $fridge_progress  = in_array($fridge_status, array('polar-fridge-returned', 'polar-complete', 'completed'), true);
+        $distributor_done = in_array($order->get_status(), array('polar-distributor-complete', 'polar-service-progress', 'polar-service-complete', 'polar-complete', 'completed'), true);
+
+        if (!$delivery_done) {
+            $delivery_user_id = PExpress_Core::get_delivery_user_id($order_id);
+            if ($delivery_user_id) {
+                $delivery_meta_status = get_post_meta($order_id, '_polar_delivery_status', true);
+                $delivery_done        = in_array($delivery_meta_status, array('wc-polar-service-complete', 'wc-polar-delivered'), true);
+            }
+        }
+
+        if (!$fridge_progress) {
+            $fridge_meta_status = get_post_meta($order_id, '_polar_fridge_status', true);
+            $fridge_progress    = ('wc-polar-fridge-returned' === $fridge_meta_status);
+        }
+
+        if (!$distributor_done) {
+            $distributor_meta_status = get_post_meta($order_id, '_polar_distributor_status', true);
+            $distributor_done        = ('wc-polar-distributor-complete' === $distributor_meta_status);
+        }
+
+        if ($delivery_done && $fridge_progress && $distributor_done && 'polar-complete' !== $order->get_status()) {
+            $order->update_status('polar-complete', __('All tasks completed. Marking service complete.', 'pexpress'));
+        }
     }
 
     /**

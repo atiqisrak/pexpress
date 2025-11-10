@@ -94,6 +94,29 @@ $distributor_count = count($distributor_users);
                     $forwarded_by_user = $forwarded_by_id ? get_userdata($forwarded_by_id) : false;
                     $forwarded_by_name = $forwarded_by_user ? $forwarded_by_user->display_name : '';
                     $forwarded_at = $forwarded_at_raw ? mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $forwarded_at_raw) : '';
+                    $meeting_type = PExpress_Core::get_meeting_type($order_id);
+                    $meeting_location = PExpress_Core::get_meeting_location($order_id);
+                    $meeting_datetime = PExpress_Core::get_meeting_datetime($order_id);
+                    $meeting_datetime_value = '';
+                    if (!empty($meeting_datetime)) {
+                        $meeting_timestamp = strtotime($meeting_datetime);
+                        if ($meeting_timestamp) {
+                            $meeting_datetime_value = gmdate('Y-m-d\TH:i', $meeting_timestamp);
+                        } else {
+                            $meeting_datetime_value = $meeting_datetime;
+                        }
+                    }
+                    $fridge_asset_id = PExpress_Core::get_fridge_asset_id($order_id);
+                    $fridge_return_date = PExpress_Core::get_order_meta($order_id, '_polar_fridge_return_date');
+                    if (!empty($fridge_return_date)) {
+                        $fridge_timestamp = strtotime($fridge_return_date);
+                        if ($fridge_timestamp) {
+                            $fridge_return_date = gmdate('Y-m-d', $fridge_timestamp);
+                        }
+                    }
+                    $delivery_instructions = PExpress_Core::get_role_instructions($order_id, 'delivery');
+                    $fridge_instructions = PExpress_Core::get_role_instructions($order_id, 'fridge');
+                    $distributor_instructions = PExpress_Core::get_role_instructions($order_id, 'distributor');
                 ?>
                     <div class="polar-order-item" data-order-id="<?php echo esc_attr($order_id); ?>">
                         <div class="order-header">
@@ -170,49 +193,32 @@ $distributor_count = count($distributor_users);
                                     </div>
                                 </div>
                             </div>
-                            <div class="polar-forward-summary">
-                                <span class="forward-summary-badge">
-                                    <?php esc_html_e('Forwarded from Support', 'pexpress'); ?>
-                                </span>
-                                <div class="forward-summary-details">
-                                    <?php if ($forwarded_by_name || $forwarded_at) : ?>
-                                        <p>
-                                            <?php
-                                            if ($forwarded_by_name && $forwarded_at) {
-                                                printf(
-                                                    /* translators: 1: name 2: date */
-                                                    esc_html__('By %1$s on %2$s', 'pexpress'),
-                                                    esc_html($forwarded_by_name),
-                                                    esc_html($forwarded_at)
-                                                );
-                                            } elseif ($forwarded_by_name) {
-                                                printf(
-                                                    /* translators: %s: name */
-                                                    esc_html__('By %s', 'pexpress'),
-                                                    esc_html($forwarded_by_name)
-                                                );
-                                            } elseif ($forwarded_at) {
-                                                printf(
-                                                    /* translators: %s: date */
-                                                    esc_html__('On %s', 'pexpress'),
-                                                    esc_html($forwarded_at)
-                                                );
-                                            }
-                                            ?>
-                                        </p>
-                                    <?php endif; ?>
-                                    <?php if (!empty($forwarded_note)) : ?>
-                                        <p class="forward-note">
-                                            <strong><?php esc_html_e('Support Note:', 'pexpress'); ?></strong>
-                                            <?php echo esc_html($forwarded_note); ?>
-                                        </p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
                         </div>
                         <div class="assignment-form">
                             <form class="polar-assign-form" data-order-id="<?php echo esc_attr($order_id); ?>">
                                 <?php wp_nonce_field('polar_assign_' . $order_id, 'polar_assign_nonce'); ?>
+
+                                <div class="assign-row">
+                                    <div class="assign-field">
+                                        <label><?php esc_html_e('Meeting Type:', 'pexpress'); ?></label>
+                                        <select name="meeting_type" class="polar-select">
+                                            <option value="meet_point" <?php selected('meet_point', $meeting_type); ?>>
+                                                <?php esc_html_e('Meet Point', 'pexpress'); ?>
+                                            </option>
+                                            <option value="delivery_location" <?php selected('delivery_location', $meeting_type); ?>>
+                                                <?php esc_html_e('Delivery Location', 'pexpress'); ?>
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="assign-field">
+                                        <label><?php esc_html_e('Meeting Address / Notes:', 'pexpress'); ?></label>
+                                        <input type="text" name="meeting_location" class="polar-input" value="<?php echo esc_attr($meeting_location); ?>" placeholder="<?php esc_attr_e('Enter meet point or delivery address', 'pexpress'); ?>">
+                                    </div>
+                                    <div class="assign-field">
+                                        <label><?php esc_html_e('Meeting Date & Time:', 'pexpress'); ?></label>
+                                        <input type="datetime-local" name="meeting_datetime" class="polar-input" value="<?php echo esc_attr($meeting_datetime_value); ?>">
+                                    </div>
+                                </div>
 
                                 <div class="assign-row">
                                     <div class="assign-field">
@@ -255,12 +261,39 @@ $distributor_count = count($distributor_users);
                                 <div class="assign-row">
                                     <div class="assign-field">
                                         <label><?php esc_html_e('Fridge Return Date:', 'pexpress'); ?></label>
-                                        <input type="date" name="fridge_return_date" class="polar-input">
+                                        <input type="date" name="fridge_return_date" class="polar-input" value="<?php echo esc_attr($fridge_return_date); ?>">
                                     </div>
+                                    <div class="assign-field">
+                                        <label><?php esc_html_e('Fridge Asset ID:', 'pexpress'); ?></label>
+                                        <input type="text" name="fridge_asset_id" class="polar-input" value="<?php echo esc_attr($fridge_asset_id); ?>" placeholder="<?php esc_attr_e('e.g., FR-01', 'pexpress'); ?>">
+                                    </div>
+                                </div>
 
+                                <div class="assign-row">
                                     <div class="assign-field assign-field-full">
                                         <label><?php esc_html_e('Assignment Notes:', 'pexpress'); ?></label>
                                         <textarea name="assignment_note" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Add any special instructions...', 'pexpress'); ?>"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="assign-row">
+                                    <div class="assign-field assign-field-full">
+                                        <label><?php esc_html_e('Delivery Instructions:', 'pexpress'); ?></label>
+                                        <textarea name="delivery_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for catering team...', 'pexpress'); ?>"><?php echo esc_textarea($delivery_instructions); ?></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="assign-row">
+                                    <div class="assign-field assign-field-full">
+                                        <label><?php esc_html_e('Fridge Instructions:', 'pexpress'); ?></label>
+                                        <textarea name="fridge_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for fridge provider...', 'pexpress'); ?>"><?php echo esc_textarea($fridge_instructions); ?></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="assign-row">
+                                    <div class="assign-field assign-field-full">
+                                        <label><?php esc_html_e('Distributor Instructions:', 'pexpress'); ?></label>
+                                        <textarea name="distributor_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for product distributor...', 'pexpress'); ?>"><?php echo esc_textarea($distributor_instructions); ?></textarea>
                                     </div>
                                 </div>
 

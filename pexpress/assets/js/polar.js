@@ -108,16 +108,36 @@
      * Initialize status update forms
      */
     function initStatusUpdateForms() {
-        $('.polar-status-update-form, .polar-fridge-status-form, .polar-distributor-status-form').on('submit', function (e) {
+        $('.polar-status-update-form, .polar-fridge-status-form, .polar-distributor-status-form').each(function () {
+            var $form = $(this);
+            $form.find('button[type="submit"]').on('click', function () {
+                $form.data('clicked-button', $(this));
+            });
+        }).on('submit', function (e) {
             e.preventDefault();
 
             var $form = $(this);
             var orderId = $form.data('order-id');
-            var $button = $form.find('button[type="submit"]');
-            var newStatus = $form.find('button[type="submit"]').val();
+            var $statusField = $form.find('[name="status"]').not('button');
+            var $button = $form.data('clicked-button');
+
+            if (!$button || $button.length === 0) {
+                $button = $form.find('button[type="submit"]').first();
+            }
+
+            var newStatus = $statusField.length ? $statusField.val() : '';
+            if (!newStatus) {
+                newStatus = $button.val();
+            }
 
             // Disable button
-            $button.prop('disabled', true).text('Updating...');
+            if ($button && $button.length) {
+                $button.prop('disabled', true);
+                if (!$button.data('original-text')) {
+                    $button.data('original-text', $.trim($button.text()) || '');
+                }
+                $button.text('Updating...');
+            }
 
             // Prepare form data
             var formData = $form.serialize();
@@ -139,12 +159,18 @@
                         }, 1000);
                     } else {
                         showNotice(response.data.message || 'Failed to update status.', 'error');
-                        $button.prop('disabled', false).text($button.data('original-text') || 'Update');
+                        if ($button && $button.length) {
+                            $button.prop('disabled', false).text($button.data('original-text') || 'Update');
+                        }
                     }
+                    $form.removeData('clicked-button');
                 },
                 error: function () {
                     showNotice('An error occurred. Please try again.', 'error');
-                    $button.prop('disabled', false).text($button.data('original-text') || 'Update');
+                    if ($button && $button.length) {
+                        $button.prop('disabled', false).text($button.data('original-text') || 'Update');
+                    }
+                    $form.removeData('clicked-button');
                 }
             });
         });

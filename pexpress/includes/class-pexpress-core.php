@@ -104,6 +104,64 @@ class PExpress_Core
     }
 
     /**
+     * Get meeting type (meet_point or delivery_location)
+     *
+     * @param int $order_id Order ID.
+     * @return string
+     */
+    public static function get_meeting_type($order_id)
+    {
+        $meeting_type = self::get_order_meta($order_id, '_polar_meeting_type');
+        return $meeting_type ?: 'meet_point';
+    }
+
+    /**
+     * Get meeting location text
+     *
+     * @param int $order_id Order ID.
+     * @return string
+     */
+    public static function get_meeting_location($order_id)
+    {
+        return (string) self::get_order_meta($order_id, '_polar_meeting_location');
+    }
+
+    /**
+     * Get scheduled meeting datetime
+     *
+     * @param int $order_id Order ID.
+     * @return string
+     */
+    public static function get_meeting_datetime($order_id)
+    {
+        return (string) self::get_order_meta($order_id, '_polar_meeting_datetime');
+    }
+
+    /**
+     * Get fridge asset identifier
+     *
+     * @param int $order_id Order ID.
+     * @return string
+     */
+    public static function get_fridge_asset_id($order_id)
+    {
+        return (string) self::get_order_meta($order_id, '_polar_fridge_asset_id');
+    }
+
+    /**
+     * Get instructions saved for a role
+     *
+     * @param int    $order_id Order ID.
+     * @param string $role_key Role key (delivery|fridge|distributor).
+     * @return string
+     */
+    public static function get_role_instructions($order_id, $role_key)
+    {
+        $meta_key = sprintf('_polar_instructions_%s', sanitize_key($role_key));
+        return (string) self::get_order_meta($order_id, $meta_key);
+    }
+
+    /**
      * Get orders assigned to a user
      *
      * @param int    $user_id User ID.
