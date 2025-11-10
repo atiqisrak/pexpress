@@ -162,6 +162,98 @@ class PExpress_Core
     }
 
     /**
+     * Get per-role status for an order
+     *
+     * @param int    $order_id Order ID.
+     * @param string $role_key Role key (agency|delivery|fridge|distributor).
+     * @return string Status value, defaults to 'pending' if not set.
+     */
+    public static function get_role_status($order_id, $role_key)
+    {
+        $meta_key = sprintf('_polar_status_%s', sanitize_key($role_key));
+        $status = self::get_order_meta($order_id, $meta_key);
+        return $status ?: 'pending';
+    }
+
+    /**
+     * Update per-role status for an order
+     *
+     * @param int    $order_id Order ID.
+     * @param string $role_key Role key (agency|delivery|fridge|distributor).
+     * @param string $status   Status value.
+     * @return bool|int Meta ID on success, false on failure.
+     */
+    public static function update_role_status($order_id, $role_key, $status)
+    {
+        $meta_key = sprintf('_polar_status_%s', sanitize_key($role_key));
+        return self::update_order_meta($order_id, $meta_key, sanitize_text_field($status));
+    }
+
+    /**
+     * Get all role statuses for an order
+     *
+     * @param int $order_id Order ID.
+     * @return array Associative array of role_key => status.
+     */
+    public static function get_all_role_statuses($order_id)
+    {
+        $roles = array('agency', 'delivery', 'fridge', 'distributor');
+        $statuses = array();
+        foreach ($roles as $role) {
+            $statuses[$role] = self::get_role_status($order_id, $role);
+        }
+        return $statuses;
+    }
+
+    /**
+     * Get role status history for an order
+     *
+     * @param int    $order_id Order ID.
+     * @param string $role_key Role key (agency|delivery|fridge|distributor).
+     * @return array Array of status history entries.
+     */
+    public static function get_role_status_history($order_id, $role_key)
+    {
+        $meta_key = sprintf('_polar_status_history_%s', sanitize_key($role_key));
+        $history = self::get_order_meta($order_id, $meta_key, false);
+        if (!is_array($history)) {
+            $history = array();
+        }
+        return $history;
+    }
+
+    /**
+     * Add entry to role status history
+     *
+     * @param int    $order_id Order ID.
+     * @param string $role_key Role key (agency|delivery|fridge|distributor).
+     * @param string $status   Status value.
+     * @param string $note     Optional note.
+     * @param int    $user_id  Optional user ID (defaults to current user).
+     * @return bool|int Meta ID on success, false on failure.
+     */
+    public static function add_role_status_history($order_id, $role_key, $status, $note = '', $user_id = 0)
+    {
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+        $user = get_userdata($user_id);
+        $user_name = $user ? $user->display_name : __('System', 'pexpress');
+
+        $history = self::get_role_status_history($order_id, $role_key);
+        $history[] = array(
+            'status' => sanitize_text_field($status),
+            'note' => sanitize_textarea_field($note),
+            'user_id' => absint($user_id),
+            'user_name' => sanitize_text_field($user_name),
+            'timestamp' => current_time('mysql'),
+        );
+
+        $meta_key = sprintf('_polar_status_history_%s', sanitize_key($role_key));
+        return self::update_order_meta($order_id, $meta_key, $history);
+    }
+
+    /**
      * Get orders assigned to a user
      *
      * @param int    $user_id User ID.

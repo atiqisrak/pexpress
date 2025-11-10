@@ -319,10 +319,25 @@ class PExpress
         // Mark as assigned
         PExpress_Core::update_order_meta($order_id, '_polar_needs_assignment', 'no');
 
+        // Update agency role status
+        PExpress_Core::update_role_status($order_id, 'agency', 'assigned');
+        PExpress_Core::add_role_status_history($order_id, 'agency', 'assigned', $assignment_note);
+
+        // Initialize other role statuses to pending if not set
+        if (!PExpress_Core::get_role_status($order_id, 'delivery')) {
+            PExpress_Core::update_role_status($order_id, 'delivery', 'pending');
+        }
+        if (!PExpress_Core::get_role_status($order_id, 'fridge')) {
+            PExpress_Core::update_role_status($order_id, 'fridge', 'pending');
+        }
+        if (!PExpress_Core::get_role_status($order_id, 'distributor')) {
+            PExpress_Core::update_role_status($order_id, 'distributor', 'pending');
+        }
+
         // Update order status
         $order = wc_get_order($order_id);
         if ($order) {
-            $order->update_status('polar-assigned', __('Order assigned by HR.', 'pexpress'));
+            $order->update_status('polar-assigned', __('Order assigned by Agency.', 'pexpress'));
         }
 
         wp_send_json_success(array('message' => __('Order assigned successfully.', 'pexpress')));
@@ -371,25 +386,40 @@ class PExpress
             wp_send_json_error(array('message' => __('Status is required.', 'pexpress')));
         }
 
-        // Determine role-based mapping
+        // Determine role-based mapping for per-role statuses
         $role_status_map = array(
             'polar_delivery' => array(
-                'meet_point_arrived'      => 'wc-polar-meet-point',
-                'delivery_location_arrived' => 'wc-polar-delivery-location',
-                'service_in_progress'     => 'wc-polar-service-progress',
-                'service_complete'        => 'wc-polar-service-complete',
-                'customer_served'         => 'wc-polar-delivered',
+                'meet_point_arrived'      => 'meet_point_arrived',
+                'delivery_location_arrived' => 'delivery_location_arrived',
+                'service_in_progress'     => 'service_in_progress',
+                'service_complete'        => 'service_complete',
+                'customer_served'         => 'customer_served',
             ),
             'polar_fridge' => array(
-                'fridge_drop'      => 'wc-polar-fridge-drop',
-                'fridge_collected' => 'wc-polar-fridge-back',
-                'fridge_returned'  => 'wc-polar-fridge-returned',
+                'fridge_drop'      => 'fridge_drop',
+                'fridge_collected' => 'fridge_collected',
+                'fridge_returned'  => 'fridge_returned',
             ),
             'polar_distributor' => array(
-                'distributor_prep'     => 'wc-polar-distributor-prep',
-                'out_for_delivery'     => 'wc-polar-out',
-                'handoff_complete'     => 'wc-polar-distributor-complete',
+                'distributor_prep'     => 'distributor_prep',
+                'out_for_delivery'     => 'out_for_delivery',
+                'handoff_complete'     => 'handoff_complete',
             ),
+        );
+
+        // Map to WC status for backward compatibility
+        $wc_status_map = array(
+            'meet_point_arrived'      => 'wc-polar-meet-point',
+            'delivery_location_arrived' => 'wc-polar-delivery-location',
+            'service_in_progress'     => 'wc-polar-service-progress',
+            'service_complete'        => 'wc-polar-service-complete',
+            'customer_served'         => 'wc-polar-delivered',
+            'fridge_drop'      => 'wc-polar-fridge-drop',
+            'fridge_collected' => 'wc-polar-fridge-back',
+            'fridge_returned'  => 'wc-polar-fridge-returned',
+            'distributor_prep'     => 'wc-polar-distributor-prep',
+            'out_for_delivery'     => 'wc-polar-out',
+            'handoff_complete'     => 'wc-polar-distributor-complete',
         );
 
         $general_status_map = array(
@@ -397,9 +427,18 @@ class PExpress
         );
 
         $matched_role = '';
+        $role_key_for_status = '';
         foreach ($role_status_map as $role_key => $map) {
             if (in_array($role_key, $user->roles, true)) {
                 $matched_role = $role_key;
+                // Map role to status key
+                if ($role_key === 'polar_delivery') {
+                    $role_key_for_status = 'delivery';
+                } elseif ($role_key === 'polar_fridge') {
+                    $role_key_for_status = 'fridge';
+                } elseif ($role_key === 'polar_distributor') {
+                    $role_key_for_status = 'distributor';
+                }
                 break;
             }
         }
@@ -431,76 +470,68 @@ class PExpress
             wp_send_json_error(array('message' => __('You are not assigned to this order.', 'pexpress')));
         }
 
-        // Map status to WooCommerce status
+        // Map status to WooCommerce status for backward compatibility
         $wc_status = '';
-        if ($matched_role && isset($role_status_map[$matched_role][$new_status])) {
-            $wc_status = $role_status_map[$matched_role][$new_status];
+        if (isset($wc_status_map[$new_status])) {
+            $wc_status = $wc_status_map[$new_status];
         } elseif (isset($general_status_map[$new_status])) {
             $wc_status = $general_status_map[$new_status];
         }
 
-        if (empty($wc_status)) {
-            wp_send_json_error(array('message' => __('Unable to resolve status mapping.', 'pexpress')));
-        }
-
-        // Enforce sequential workflow for roles
-        $sequence_map = array(
-            'polar_distributor' => array(
-                'wc-processing',
-                'wc-polar-assigned',
-                'wc-polar-distributor-prep',
-                'wc-polar-out',
-                'wc-polar-distributor-complete',
-            ),
-            'polar_delivery' => array(
-                'wc-polar-assigned',
-                'wc-polar-distributor-complete',
-                'wc-polar-meet-point',
-                'wc-polar-delivery-location',
-                'wc-polar-service-progress',
-                'wc-polar-service-complete',
-                'wc-polar-delivered',
-            ),
-            'polar_fridge' => array(
-                'wc-polar-assigned',
-                'wc-polar-fridge-drop',
-                'wc-polar-fridge-back',
-                'wc-polar-fridge-returned',
-            ),
-        );
-
-        if ($matched_role && isset($sequence_map[$matched_role])) {
-            $current_status = 'wc-' . $order->get_status();
-            $sequence       = $sequence_map[$matched_role];
-            $current_index  = array_search($current_status, $sequence, true);
-            $new_index      = array_search($wc_status, $sequence, true);
-
-            if ($new_index === false) {
-                // Allow statuses outside sequence if explicitly mapped (e.g., admin overrides)
-                $current_index = false;
-            }
-
-            if ($new_index !== false && $current_index !== false && $new_index < $current_index) {
-                wp_send_json_error(array('message' => __('You cannot move backwards in the workflow.', 'pexpress')));
-            }
-        }
-
-        // Persist role progress tracking
-        if ($matched_role) {
-            $progress_meta_map = array(
-                'polar_delivery'    => '_polar_delivery_status',
-                'polar_fridge'      => '_polar_fridge_status',
-                'polar_distributor' => '_polar_distributor_status',
+        // Enforce sequential workflow for per-role statuses
+        if ($matched_role && $role_key_for_status) {
+            $sequence_map = array(
+                'distributor' => array(
+                    'pending',
+                    'distributor_prep',
+                    'out_for_delivery',
+                    'handoff_complete',
+                ),
+                'delivery' => array(
+                    'pending',
+                    'meet_point_arrived',
+                    'delivery_location_arrived',
+                    'service_in_progress',
+                    'service_complete',
+                    'customer_served',
+                ),
+                'fridge' => array(
+                    'pending',
+                    'fridge_drop',
+                    'fridge_collected',
+                    'fridge_returned',
+                ),
             );
 
-            if (isset($progress_meta_map[$matched_role])) {
-                update_post_meta($order_id, $progress_meta_map[$matched_role], $wc_status);
+            if (isset($sequence_map[$role_key_for_status])) {
+                $current_role_status = PExpress_Core::get_role_status($order_id, $role_key_for_status);
+                $sequence = $sequence_map[$role_key_for_status];
+                $current_index = array_search($current_role_status, $sequence, true);
+                $new_index = array_search($new_status, $sequence, true);
+
+                if ($new_index === false) {
+                    // Allow statuses outside sequence if explicitly mapped (e.g., admin overrides)
+                    $current_index = false;
+                }
+
+                if ($new_index !== false && $current_index !== false && $new_index < $current_index) {
+                    wp_send_json_error(array('message' => __('You cannot move backwards in the workflow.', 'pexpress')));
+                }
             }
         }
 
-        // Update status with note
-        $display_name = $user->display_name ?: $user->user_login ?: __('User', 'pexpress');
-        $order->update_status($wc_status, sprintf(__('Status updated by %s.', 'pexpress'), $display_name));
+        // Update per-role status
+        if ($matched_role && $role_key_for_status) {
+            PExpress_Core::update_role_status($order_id, $role_key_for_status, $new_status);
+            $display_name = $user->display_name ?: $user->user_login ?: __('User', 'pexpress');
+            PExpress_Core::add_role_status_history($order_id, $role_key_for_status, $new_status, sprintf(__('Status updated by %s.', 'pexpress'), $display_name));
+        }
+
+        // Update WC status for backward compatibility (if mapped)
+        if (!empty($wc_status)) {
+            $display_name = $user->display_name ?: $user->user_login ?: __('User', 'pexpress');
+            $order->update_status(str_replace('wc-', '', $wc_status), sprintf(__('Status updated by %s.', 'pexpress'), $display_name));
+        }
 
         // If all tasks complete, mark order complete for overview
         self::maybe_mark_order_complete($order);
@@ -522,27 +553,38 @@ class PExpress
 
         $order_id = $order->get_id();
 
-        $delivery_done    = in_array($order->get_status(), array('polar-service-complete', 'polar-delivered', 'polar-complete', 'completed'), true);
-        $fridge_status    = $order->get_status();
-        $fridge_progress  = in_array($fridge_status, array('polar-fridge-returned', 'polar-complete', 'completed'), true);
-        $distributor_done = in_array($order->get_status(), array('polar-distributor-complete', 'polar-service-progress', 'polar-service-complete', 'polar-complete', 'completed'), true);
+        // Check per-role statuses
+        $delivery_status = PExpress_Core::get_role_status($order_id, 'delivery');
+        $fridge_status = PExpress_Core::get_role_status($order_id, 'fridge');
+        $distributor_status = PExpress_Core::get_role_status($order_id, 'distributor');
 
+        $delivery_done = in_array($delivery_status, array('service_complete', 'customer_served'), true);
+        $fridge_progress = ('fridge_returned' === $fridge_status);
+        $distributor_done = ('handoff_complete' === $distributor_status);
+
+        // Fallback to WC status for backward compatibility
         if (!$delivery_done) {
             $delivery_user_id = PExpress_Core::get_delivery_user_id($order_id);
             if ($delivery_user_id) {
-                $delivery_meta_status = get_post_meta($order_id, '_polar_delivery_status', true);
-                $delivery_done        = in_array($delivery_meta_status, array('wc-polar-service-complete', 'wc-polar-delivered'), true);
+                $wc_status = $order->get_status();
+                $delivery_done = in_array($wc_status, array('polar-service-complete', 'polar-delivered', 'polar-complete', 'completed'), true);
             }
         }
 
         if (!$fridge_progress) {
-            $fridge_meta_status = get_post_meta($order_id, '_polar_fridge_status', true);
-            $fridge_progress    = ('wc-polar-fridge-returned' === $fridge_meta_status);
+            $fridge_user_id = PExpress_Core::get_fridge_user_id($order_id);
+            if ($fridge_user_id) {
+                $wc_status = $order->get_status();
+                $fridge_progress = in_array($wc_status, array('polar-fridge-returned', 'polar-complete', 'completed'), true);
+            }
         }
 
         if (!$distributor_done) {
-            $distributor_meta_status = get_post_meta($order_id, '_polar_distributor_status', true);
-            $distributor_done        = ('wc-polar-distributor-complete' === $distributor_meta_status);
+            $distributor_user_id = PExpress_Core::get_distributor_user_id($order_id);
+            if ($distributor_user_id) {
+                $wc_status = $order->get_status();
+                $distributor_done = in_array($wc_status, array('polar-distributor-complete', 'polar-service-progress', 'polar-service-complete', 'polar-complete', 'completed'), true);
+            }
         }
 
         if ($delivery_done && $fridge_progress && $distributor_done && 'polar-complete' !== $order->get_status()) {
@@ -568,8 +610,91 @@ class PExpress
         // Create custom roles
         polar_create_roles();
 
+        // Run data migration for per-role statuses
+        self::migrate_to_per_role_statuses();
+
         // Flush rewrite rules
         flush_rewrite_rules();
+    }
+
+    /**
+     * Migrate existing orders to per-role status system
+     *
+     * @return void
+     */
+    public static function migrate_to_per_role_statuses()
+    {
+        // Get all orders that might have statuses
+        $orders = wc_get_orders(array(
+            'status' => 'any',
+            'limit' => -1,
+        ));
+
+        foreach ($orders as $order) {
+            $order_id = $order->get_id();
+            $wc_status = $order->get_status();
+
+            // Skip if already migrated (has any per-role status)
+            if (PExpress_Core::get_role_status($order_id, 'agency') !== 'pending' ||
+                PExpress_Core::get_role_status($order_id, 'delivery') !== 'pending' ||
+                PExpress_Core::get_role_status($order_id, 'fridge') !== 'pending' ||
+                PExpress_Core::get_role_status($order_id, 'distributor') !== 'pending') {
+                continue;
+            }
+
+            // Map WC status to per-role statuses based on order assignments
+            $delivery_user_id = PExpress_Core::get_delivery_user_id($order_id);
+            $fridge_user_id = PExpress_Core::get_fridge_user_id($order_id);
+            $distributor_user_id = PExpress_Core::get_distributor_user_id($order_id);
+
+            // Agency status
+            if (in_array($wc_status, array('polar-assigned', 'processing'), true)) {
+                PExpress_Core::update_role_status($order_id, 'agency', 'assigned');
+            }
+
+            // Delivery status mapping
+            if ($delivery_user_id) {
+                $delivery_status = 'pending';
+                if (in_array($wc_status, array('polar-meet-point'), true)) {
+                    $delivery_status = 'meet_point_arrived';
+                } elseif (in_array($wc_status, array('polar-delivery-location'), true)) {
+                    $delivery_status = 'delivery_location_arrived';
+                } elseif (in_array($wc_status, array('polar-service-progress'), true)) {
+                    $delivery_status = 'service_in_progress';
+                } elseif (in_array($wc_status, array('polar-service-complete'), true)) {
+                    $delivery_status = 'service_complete';
+                } elseif (in_array($wc_status, array('polar-delivered'), true)) {
+                    $delivery_status = 'customer_served';
+                }
+                PExpress_Core::update_role_status($order_id, 'delivery', $delivery_status);
+            }
+
+            // Fridge status mapping
+            if ($fridge_user_id) {
+                $fridge_status = 'pending';
+                if (in_array($wc_status, array('polar-fridge-drop'), true)) {
+                    $fridge_status = 'fridge_drop';
+                } elseif (in_array($wc_status, array('polar-fridge-back'), true)) {
+                    $fridge_status = 'fridge_collected';
+                } elseif (in_array($wc_status, array('polar-fridge-returned'), true)) {
+                    $fridge_status = 'fridge_returned';
+                }
+                PExpress_Core::update_role_status($order_id, 'fridge', $fridge_status);
+            }
+
+            // Distributor status mapping
+            if ($distributor_user_id) {
+                $distributor_status = 'pending';
+                if (in_array($wc_status, array('polar-distributor-prep'), true)) {
+                    $distributor_status = 'distributor_prep';
+                } elseif (in_array($wc_status, array('polar-out'), true)) {
+                    $distributor_status = 'out_for_delivery';
+                } elseif (in_array($wc_status, array('polar-distributor-complete'), true)) {
+                    $distributor_status = 'handoff_complete';
+                }
+                PExpress_Core::update_role_status($order_id, 'distributor', $distributor_status);
+            }
+        }
     }
 
     /**

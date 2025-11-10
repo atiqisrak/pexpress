@@ -15,6 +15,7 @@
         initStatusUpdateForms();
         initSupportDashboardFilters();
         initTabs();
+        initHistoryRowExpansion();
     });
 
     /**
@@ -265,6 +266,47 @@
             clearTimeout($searchInput.data('timeout'));
             var timeout = setTimeout(filterOrders, 300);
             $searchInput.data('timeout', timeout);
+        });
+    }
+
+    /**
+     * Initialize history row expansion
+     */
+    function initHistoryRowExpansion() {
+        $(document).on('click', '.polar-toggle-details', function (e) {
+            e.preventDefault();
+            var $button = $(this);
+            var orderId = $button.data('order-id');
+            var $detailsRow = $('.polar-history-details[data-order-id="' + orderId + '"]');
+            var $historyRow = $('.polar-history-row[data-order-id="' + orderId + '"]');
+
+            if ($detailsRow.length === 0) {
+                return;
+            }
+
+            if ($detailsRow.is(':visible')) {
+                $detailsRow.slideUp(200);
+                $button.text('View');
+                $historyRow.removeClass('expanded');
+            } else {
+                $detailsRow.slideDown(200);
+                $button.text('Hide');
+                $historyRow.addClass('expanded');
+            }
+        });
+
+        // Make entire row clickable for better UX
+        $(document).on('click', '.polar-history-row', function (e) {
+            // Don't trigger if clicking on a link or button
+            if ($(e.target).is('a, button, .polar-toggle-details')) {
+                return;
+            }
+            var $row = $(this);
+            var orderId = $row.data('order-id');
+            var $button = $row.find('.polar-toggle-details');
+            if ($button.length) {
+                $button.trigger('click');
+            }
         });
     }
 

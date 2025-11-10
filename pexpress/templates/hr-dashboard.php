@@ -26,9 +26,9 @@ $distributor_count = count($distributor_users);
         <div class="polar-header-content">
             <h1 class="polar-dashboard-title">
                 <span class="polar-title-icon">👥</span>
-                <?php esc_html_e('HR Dashboard - Task Assignment', 'pexpress'); ?>
+                <?php esc_html_e('Agency Dashboard - Task Assignment', 'pexpress'); ?>
             </h1>
-            <p class="polar-dashboard-subtitle"><?php esc_html_e('Assign orders to delivery, fridge, and distributor teams', 'pexpress'); ?></p>
+            <p class="polar-dashboard-subtitle"><?php esc_html_e('Assign orders to HR, fridge, and distributor teams', 'pexpress'); ?></p>
         </div>
     </div>
 
@@ -52,7 +52,7 @@ $distributor_count = count($distributor_users);
             </div>
             <div class="stat-card-content">
                 <h3 class="stat-card-value"><?php echo esc_html($delivery_count); ?></h3>
-                <p class="stat-card-label"><?php esc_html_e('Delivery Personnel', 'pexpress'); ?></p>
+                <p class="stat-card-label"><?php esc_html_e('HR Personnel', 'pexpress'); ?></p>
             </div>
         </div>
         <div class="polar-stat-card stat-card-success">
@@ -222,7 +222,7 @@ $distributor_count = count($distributor_users);
 
                                 <div class="assign-row">
                                     <div class="assign-field">
-                                        <label><?php esc_html_e('Delivery Person:', 'pexpress'); ?></label>
+                                        <label><?php esc_html_e('HR Person:', 'pexpress'); ?></label>
                                         <select name="delivery_user_id" class="polar-select">
                                             <option value=""><?php esc_html_e('Select...', 'pexpress'); ?></option>
                                             <?php foreach ($delivery_users as $user) : ?>
@@ -278,8 +278,8 @@ $distributor_count = count($distributor_users);
 
                                 <div class="assign-row">
                                     <div class="assign-field assign-field-full">
-                                        <label><?php esc_html_e('Delivery Instructions:', 'pexpress'); ?></label>
-                                        <textarea name="delivery_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for catering team...', 'pexpress'); ?>"><?php echo esc_textarea($delivery_instructions); ?></textarea>
+                                        <label><?php esc_html_e('HR Instructions:', 'pexpress'); ?></label>
+                                        <textarea name="delivery_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for HR team...', 'pexpress'); ?>"><?php echo esc_textarea($delivery_instructions); ?></textarea>
                                     </div>
                                 </div>
 
@@ -320,44 +320,144 @@ $distributor_count = count($distributor_users);
     </div>
 
     <div class="polar-recent-assignments">
-        <h2><?php esc_html_e('Recently Assigned Orders', 'pexpress'); ?></h2>
+        <h2><?php esc_html_e('Recent History', 'pexpress'); ?></h2>
         <?php
         $recent_assigned = wc_get_orders(array(
-            'status' => 'wc-polar-assigned',
-            'limit' => 10,
+            'status' => 'any',
+            'limit' => 20,
             'orderby' => 'date',
             'order' => 'DESC',
+            'meta_key' => '_polar_needs_assignment',
+            'meta_value' => 'no',
         ));
         ?>
         <?php if (!empty($recent_assigned)) : ?>
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th><?php esc_html_e('Order ID', 'pexpress'); ?></th>
-                        <th><?php esc_html_e('Customer', 'pexpress'); ?></th>
-                        <th><?php esc_html_e('Delivery', 'pexpress'); ?></th>
-                        <th><?php esc_html_e('Fridge', 'pexpress'); ?></th>
-                        <th><?php esc_html_e('Distributor', 'pexpress'); ?></th>
-                        <th><?php esc_html_e('Date', 'pexpress'); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($recent_assigned as $order) :
-                        $delivery_id = PExpress_Core::get_delivery_user_id($order->get_id());
-                        $fridge_id = PExpress_Core::get_fridge_user_id($order->get_id());
-                        $distributor_id = PExpress_Core::get_distributor_user_id($order->get_id());
-                    ?>
+            <div class="polar-recent-history-table">
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
                         <tr>
-                            <td><a href="<?php echo esc_url(admin_url('post.php?post=' . $order->get_id() . '&action=edit')); ?>">#<?php echo esc_html($order->get_id()); ?></a></td>
-                            <td><?php echo esc_html(PExpress_Core::get_billing_name($order)); ?></td>
-                            <td><?php echo $delivery_id ? esc_html(get_userdata($delivery_id)->display_name) : '—'; ?></td>
-                            <td><?php echo $fridge_id ? esc_html(get_userdata($fridge_id)->display_name) : '—'; ?></td>
-                            <td><?php echo $distributor_id ? esc_html(get_userdata($distributor_id)->display_name) : '—'; ?></td>
-                            <td><?php echo esc_html($order->get_date_created()->date_i18n('Y-m-d H:i')); ?></td>
+                            <th><?php esc_html_e('Order ID', 'pexpress'); ?></th>
+                            <th><?php esc_html_e('Customer', 'pexpress'); ?></th>
+                            <th><?php esc_html_e('Agency', 'pexpress'); ?></th>
+                            <th><?php esc_html_e('HR', 'pexpress'); ?></th>
+                            <th><?php esc_html_e('Fridge', 'pexpress'); ?></th>
+                            <th><?php esc_html_e('Distributor', 'pexpress'); ?></th>
+                            <th><?php esc_html_e('Date', 'pexpress'); ?></th>
+                            <th><?php esc_html_e('Details', 'pexpress'); ?></th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($recent_assigned as $order) :
+                            $order_id = $order->get_id();
+                            $delivery_id = PExpress_Core::get_delivery_user_id($order_id);
+                            $fridge_id = PExpress_Core::get_fridge_user_id($order_id);
+                            $distributor_id = PExpress_Core::get_distributor_user_id($order_id);
+
+                            // Get per-role statuses
+                            $agency_status = PExpress_Core::get_role_status($order_id, 'agency');
+                            $delivery_status = PExpress_Core::get_role_status($order_id, 'delivery');
+                            $fridge_status = PExpress_Core::get_role_status($order_id, 'fridge');
+                            $distributor_status = PExpress_Core::get_role_status($order_id, 'distributor');
+
+                            // Status labels
+                            $status_labels = array(
+                                'agency' => array(
+                                    'pending' => __('Pending', 'pexpress'),
+                                    'assigned' => __('Assigned', 'pexpress'),
+                                ),
+                                'delivery' => array(
+                                    'pending' => __('Pending', 'pexpress'),
+                                    'meet_point_arrived' => __('Meet Point', 'pexpress'),
+                                    'delivery_location_arrived' => __('Delivery Location', 'pexpress'),
+                                    'service_in_progress' => __('In Progress', 'pexpress'),
+                                    'service_complete' => __('Service Complete', 'pexpress'),
+                                    'customer_served' => __('Served', 'pexpress'),
+                                ),
+                                'fridge' => array(
+                                    'pending' => __('Pending', 'pexpress'),
+                                    'fridge_drop' => __('Dropped', 'pexpress'),
+                                    'fridge_collected' => __('Collected', 'pexpress'),
+                                    'fridge_returned' => __('Returned', 'pexpress'),
+                                ),
+                                'distributor' => array(
+                                    'pending' => __('Pending', 'pexpress'),
+                                    'distributor_prep' => __('Preparing', 'pexpress'),
+                                    'out_for_delivery' => __('Out for Delivery', 'pexpress'),
+                                    'handoff_complete' => __('Handoff Complete', 'pexpress'),
+                                ),
+                            );
+                        ?>
+                            <tr class="polar-history-row" data-order-id="<?php echo esc_attr($order_id); ?>">
+                                <td><a href="<?php echo esc_url(admin_url('post.php?post=' . $order_id . '&action=edit')); ?>">#<?php echo esc_html($order_id); ?></a></td>
+                                <td><?php echo esc_html(PExpress_Core::get_billing_name($order)); ?></td>
+                                <td><span class="status-chip status-<?php echo esc_attr($agency_status); ?>"><?php echo esc_html($status_labels['agency'][$agency_status] ?? $agency_status); ?></span></td>
+                                <td>
+                                    <?php if ($delivery_id) : ?>
+                                        <span class="status-chip status-<?php echo esc_attr($delivery_status); ?>"><?php echo esc_html($status_labels['delivery'][$delivery_status] ?? $delivery_status); ?></span>
+                                        <small><?php echo esc_html(get_userdata($delivery_id)->display_name); ?></small>
+                                    <?php else : ?>
+                                        <span>—</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($fridge_id) : ?>
+                                        <span class="status-chip status-<?php echo esc_attr($fridge_status); ?>"><?php echo esc_html($status_labels['fridge'][$fridge_status] ?? $fridge_status); ?></span>
+                                        <small><?php echo esc_html(get_userdata($fridge_id)->display_name); ?></small>
+                                    <?php else : ?>
+                                        <span>—</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($distributor_id) : ?>
+                                        <span class="status-chip status-<?php echo esc_attr($distributor_status); ?>"><?php echo esc_html($status_labels['distributor'][$distributor_status] ?? $distributor_status); ?></span>
+                                        <small><?php echo esc_html(get_userdata($distributor_id)->display_name); ?></small>
+                                    <?php else : ?>
+                                        <span>—</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc_html($order->get_date_created()->date_i18n('Y-m-d H:i')); ?></td>
+                                <td><button class="polar-toggle-details" data-order-id="<?php echo esc_attr($order_id); ?>"><?php esc_html_e('View', 'pexpress'); ?></button></td>
+                            </tr>
+                            <tr class="polar-history-details" data-order-id="<?php echo esc_attr($order_id); ?>" style="display:none;">
+                                <td colspan="8">
+                                    <div class="polar-details-content">
+                                        <h4><?php esc_html_e('Status History', 'pexpress'); ?></h4>
+                                        <?php
+                                        $roles = array(
+                                            'agency' => __('Agency', 'pexpress'),
+                                            'delivery' => __('HR', 'pexpress'),
+                                            'fridge' => __('Fridge', 'pexpress'),
+                                            'distributor' => __('Distributor', 'pexpress'),
+                                        );
+                                        foreach ($roles as $role_key => $role_label) :
+                                            $history = PExpress_Core::get_role_status_history($order_id, $role_key);
+                                            if (!empty($history)) :
+                                        ?>
+                                                <div class="polar-history-section">
+                                                    <strong><?php echo esc_html($role_label); ?>:</strong>
+                                                    <ul>
+                                                        <?php foreach (array_reverse($history) as $entry) : ?>
+                                                            <li>
+                                                                <span class="status-badge"><?php echo esc_html($status_labels[$role_key][$entry['status']] ?? $entry['status']); ?></span>
+                                                                <?php if (!empty($entry['note'])) : ?>
+                                                                    <span class="history-note"><?php echo esc_html($entry['note']); ?></span>
+                                                                <?php endif; ?>
+                                                                <span class="history-meta"><?php echo esc_html($entry['user_name']); ?> - <?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($entry['timestamp']))); ?></span>
+                                                            </li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                </div>
+                                        <?php
+                                            endif;
+                                        endforeach;
+                                        ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php else : ?>
             <p><?php esc_html_e('No recently assigned orders.', 'pexpress'); ?></p>
         <?php endif; ?>

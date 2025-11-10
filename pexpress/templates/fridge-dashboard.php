@@ -100,14 +100,14 @@ foreach ($assigned_orders as $order) {
         continue;
     }
 
-    $status = $order->get_status();
+    $order_id = $order->get_id();
+    // Use per-role status instead of WC status
+    $role_status = PExpress_Core::get_role_status($order_id, 'fridge');
 
-    if (pexpress_status_matches($status, $fridge_completed_statuses)) {
+    if ($role_status === 'fridge_returned') {
         $fridge_groups['completed'][] = $order;
-    } elseif (pexpress_status_matches($status, $fridge_in_progress_statuses)) {
+    } elseif (in_array($role_status, array('fridge_drop', 'fridge_collected'), true)) {
         $fridge_groups['in_progress'][] = $order;
-    } elseif (pexpress_status_matches($status, $fridge_pending_statuses)) {
-        $fridge_groups['pending'][] = $order;
     } else {
         $fridge_groups['pending'][] = $order;
     }
@@ -139,8 +139,17 @@ if (!function_exists('pexpress_render_fridge_task_card')) {
         }
 
         $order_id           = $order->get_id();
+        // Get per-role status
+        $role_status = PExpress_Core::get_role_status($order_id, 'fridge');
         $order_status       = $order->get_status();
-        $order_status_label = wc_get_order_status_name($order_status);
+        // Map role status to display label
+        $status_labels = array(
+            'pending' => __('Pending', 'pexpress'),
+            'fridge_drop' => __('Fridge Delivered On-site', 'pexpress'),
+            'fridge_collected' => __('Fridge Collected On-site', 'pexpress'),
+            'fridge_returned' => __('Fridge Returned to Base', 'pexpress'),
+        );
+        $order_status_label = $status_labels[$role_status] ?? wc_get_order_status_name($order_status);
         $order_date_obj     = $order->get_date_created();
         $order_date         = $order_date_obj ? $order_date_obj->date_i18n('M d, Y') : '';
         $meeting_type       = PExpress_Core::get_meeting_type($order_id);
@@ -163,8 +172,8 @@ if (!function_exists('pexpress_render_fridge_task_card')) {
 
         $available_actions = array();
         if ($show_actions) {
-            $pending_statuses_for_drop = array('processing', 'pending', 'on-hold', 'wc-polar-assigned', 'wc-polar-distributor-prep', 'wc-polar-out', 'wc-polar-meet-point', 'wc-polar-delivery-location', 'wc-polar-service-progress');
-            if (pexpress_status_matches($order_status, $pending_statuses_for_drop)) {
+            // Use per-role status for determining available actions
+            if ($role_status === 'pending') {
                 $available_actions[] = array(
                     'value' => 'fridge_drop',
                     'label' => __('Confirm Fridge Delivered', 'pexpress'),
@@ -173,8 +182,7 @@ if (!function_exists('pexpress_render_fridge_task_card')) {
                 );
             }
 
-            $collect_ready_statuses = array('wc-polar-fridge-drop', 'polar-fridge-drop', 'wc-polar-service-complete', 'polar-service-complete', 'wc-polar-delivered', 'polar-delivered');
-            if (pexpress_status_matches($order_status, $collect_ready_statuses)) {
+            if ($role_status === 'fridge_drop') {
                 $available_actions[] = array(
                     'value' => 'fridge_collected',
                     'label' => __('Mark Fridge Collected On-site', 'pexpress'),
@@ -183,7 +191,7 @@ if (!function_exists('pexpress_render_fridge_task_card')) {
                 );
             }
 
-            if (pexpress_status_matches($order_status, array('wc-polar-fridge-back', 'polar-fridge-back'))) {
+            if ($role_status === 'fridge_collected') {
                 $available_actions[] = array(
                     'value' => 'fridge_returned',
                     'label' => __('Confirm Fridge Returned to Base', 'pexpress'),
@@ -212,7 +220,7 @@ if (!function_exists('pexpress_render_fridge_task_card')) {
                         </span>
                     <?php endif; ?>
                 </div>
-                <span class="task-status status-<?php echo esc_attr($order_status); ?>">
+                <span class="task-status status-<?php echo esc_attr($role_status); ?>">
                     <?php echo esc_html($order_status_label); ?>
                 </span>
             </div>

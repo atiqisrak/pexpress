@@ -90,14 +90,14 @@ foreach ($assigned_orders as $order) {
         continue;
     }
 
-    $status = $order->get_status();
+    $order_id = $order->get_id();
+    // Use per-role status instead of WC status
+    $role_status = PExpress_Core::get_role_status($order_id, 'distributor');
 
-    if (pexpress_status_matches($status, $distributor_completed_statuses)) {
+    if ($role_status === 'handoff_complete') {
         $distributor_groups['completed'][] = $order;
-    } elseif (pexpress_status_matches($status, $distributor_in_progress_statuses)) {
+    } elseif (in_array($role_status, array('distributor_prep', 'out_for_delivery'), true)) {
         $distributor_groups['in_progress'][] = $order;
-    } elseif (pexpress_status_matches($status, $distributor_pending_statuses)) {
-        $distributor_groups['pending'][] = $order;
     } else {
         $distributor_groups['pending'][] = $order;
     }
@@ -173,8 +173,17 @@ $completed_total = count($completed_tasks);
                 }
 
                 $order_id            = $order->get_id();
+                // Get per-role status
+                $role_status = PExpress_Core::get_role_status($order_id, 'distributor');
                 $order_status        = $order->get_status();
-                $order_status_label  = wc_get_order_status_name($order_status);
+                // Map role status to display label
+                $status_labels = array(
+                    'pending' => __('Pending', 'pexpress'),
+                    'distributor_prep' => __('Distributor Preparing', 'pexpress'),
+                    'out_for_delivery' => __('Out for Delivery', 'pexpress'),
+                    'handoff_complete' => __('Handoff Complete', 'pexpress'),
+                );
+                $order_status_label  = $status_labels[$role_status] ?? wc_get_order_status_name($order_status);
                 $order_date_obj      = $order->get_date_created();
                 $order_date          = $order_date_obj ? $order_date_obj->date_i18n('M d, Y') : '';
                 $items               = $order->get_items();
@@ -193,7 +202,8 @@ $completed_total = count($completed_tasks);
 
                 $available_actions = array();
                 if ($show_action) {
-                    if (pexpress_status_matches($order_status, array('processing', 'pending', 'on-hold', 'wc-polar-assigned'))) {
+                    // Use per-role status for determining available actions
+                    if ($role_status === 'pending') {
                         $available_actions[] = array(
                             'value' => 'distributor_prep',
                             'label' => __('Start Preparing Products', 'pexpress'),
@@ -202,7 +212,7 @@ $completed_total = count($completed_tasks);
                         );
                     }
 
-                    if (pexpress_status_matches($order_status, array('wc-polar-distributor-prep', 'polar-distributor-prep'))) {
+                    if ($role_status === 'distributor_prep') {
                         $available_actions[] = array(
                             'value' => 'out_for_delivery',
                             'label' => __('Mark Out for Delivery', 'pexpress'),
@@ -211,7 +221,7 @@ $completed_total = count($completed_tasks);
                         );
                     }
 
-                    if (pexpress_status_matches($order_status, array('wc-polar-out', 'polar-out'))) {
+                    if ($role_status === 'out_for_delivery') {
                         $available_actions[] = array(
                             'value' => 'handoff_complete',
                             'label' => __('Confirm Handoff Complete', 'pexpress'),
@@ -238,7 +248,7 @@ $completed_total = count($completed_tasks);
                                 </span>
                             <?php endif; ?>
                         </div>
-                        <span class="task-status status-<?php echo esc_attr($order_status); ?>">
+                        <span class="task-status status-<?php echo esc_attr($role_status); ?>">
                             <?php echo esc_html($order_status_label); ?>
                         </span>
                     </div>

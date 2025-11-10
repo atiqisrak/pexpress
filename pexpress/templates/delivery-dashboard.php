@@ -84,14 +84,14 @@ foreach ($assigned_orders as $order) {
         continue;
     }
 
-    $status = $order->get_status();
+    $order_id = $order->get_id();
+    // Use per-role status instead of WC status
+    $role_status = PExpress_Core::get_role_status($order_id, 'delivery');
 
-    if (pexpress_status_matches($status, $delivery_completed_statuses)) {
+    if (in_array($role_status, array('service_complete', 'customer_served'), true)) {
         $delivery_groups['completed'][] = $order;
-    } elseif (pexpress_status_matches($status, $delivery_in_progress_statuses)) {
+    } elseif (in_array($role_status, array('meet_point_arrived', 'delivery_location_arrived', 'service_in_progress'), true)) {
         $delivery_groups['in_progress'][] = $order;
-    } elseif (pexpress_status_matches($status, $delivery_pending_statuses)) {
-        $delivery_groups['pending'][] = $order;
     } else {
         $delivery_groups['pending'][] = $order;
     }
@@ -137,8 +137,19 @@ if (!function_exists('pexpress_render_delivery_task_card')) {
         }
 
         $order_id = $order->get_id();
+        // Get per-role status
+        $role_status = PExpress_Core::get_role_status($order_id, 'delivery');
         $order_status = $order->get_status();
-        $order_status_label = wc_get_order_status_name($order_status);
+        // Map role status to display label
+        $status_labels = array(
+            'pending' => __('Pending', 'pexpress'),
+            'meet_point_arrived' => __('Reached Meet Point', 'pexpress'),
+            'delivery_location_arrived' => __('Reached Delivery Location', 'pexpress'),
+            'service_in_progress' => __('Service In Progress', 'pexpress'),
+            'service_complete' => __('Service Completed', 'pexpress'),
+            'customer_served' => __('Customer Served', 'pexpress'),
+        );
+        $order_status_label = $status_labels[$role_status] ?? wc_get_order_status_name($order_status);
         $order_date_obj = $order->get_date_created();
         $order_date = $order_date_obj ? $order_date_obj->date_i18n('M d, Y') : '';
 
@@ -162,7 +173,8 @@ if (!function_exists('pexpress_render_delivery_task_card')) {
 
         $available_actions = array();
         if ($show_actions) {
-            if (pexpress_status_matches($order_status, array('processing', 'pending', 'on-hold', 'wc-polar-assigned', 'polar-assigned', 'wc-polar-distributor-prep', 'wc-polar-out'))) {
+            // Use per-role status for determining available actions
+            if (in_array($role_status, array('pending'), true)) {
                 $arrival_slug = ('delivery_location' === $meeting_type) ? 'delivery_location_arrived' : 'meet_point_arrived';
                 $arrival_label = ('delivery_location' === $meeting_type)
                     ? __('Mark Reached Delivery Location', 'pexpress')
@@ -176,7 +188,7 @@ if (!function_exists('pexpress_render_delivery_task_card')) {
                 );
             }
 
-            if (pexpress_status_matches($order_status, array('wc-polar-meet-point', 'polar-meet-point', 'wc-polar-delivery-location', 'polar-delivery-location'))) {
+            if (in_array($role_status, array('meet_point_arrived', 'delivery_location_arrived'), true)) {
                 $available_actions[] = array(
                     'value' => 'service_in_progress',
                     'label' => __('Begin Service', 'pexpress'),
@@ -185,7 +197,7 @@ if (!function_exists('pexpress_render_delivery_task_card')) {
                 );
             }
 
-            if (pexpress_status_matches($order_status, array('wc-polar-service-progress', 'polar-service-progress'))) {
+            if ($role_status === 'service_in_progress') {
                 $available_actions[] = array(
                     'value' => 'service_complete',
                     'label' => __('Mark Service Complete', 'pexpress'),
@@ -194,7 +206,7 @@ if (!function_exists('pexpress_render_delivery_task_card')) {
                 );
             }
 
-            if (pexpress_status_matches($order_status, array('wc-polar-service-complete', 'polar-service-complete'))) {
+            if ($role_status === 'service_complete') {
                 $available_actions[] = array(
                     'value' => 'customer_served',
                     'label' => __('Confirm Customer Served', 'pexpress'),
@@ -228,7 +240,7 @@ if (!function_exists('pexpress_render_delivery_task_card')) {
                         </span>
                     <?php endif; ?>
                 </div>
-                <span class="task-status status-<?php echo esc_attr($order_status); ?>">
+                <span class="task-status status-<?php echo esc_attr($role_status); ?>">
                     <?php echo esc_html($order_status_label); ?>
                 </span>
             </div>
@@ -318,7 +330,7 @@ if (!function_exists('pexpress_render_delivery_task_card')) {
                     <div class="order-detail-row order-detail-note">
                         <?php if (!empty($delivery_instructions)) : ?>
                             <div class="order-detail-item order-detail-full">
-                                <span class="detail-label"><?php esc_html_e('Delivery Instructions', 'pexpress'); ?></span>
+                                <span class="detail-label"><?php esc_html_e('HR Instructions', 'pexpress'); ?></span>
                                 <p class="detail-note"><?php echo nl2br(esc_html($delivery_instructions)); ?></p>
                             </div>
                         <?php endif; ?>
@@ -367,9 +379,9 @@ $completed_total = count($completed_orders);
         <div class="polar-header-content">
             <h1 class="polar-dashboard-title">
                 <span class="polar-title-icon">🚚</span>
-                <?php esc_html_e('Delivery Dashboard', 'pexpress'); ?>
+                <?php esc_html_e('HR Dashboard', 'pexpress'); ?>
             </h1>
-            <p class="polar-dashboard-subtitle"><?php esc_html_e('Manage your delivery tasks and track orders', 'pexpress'); ?></p>
+            <p class="polar-dashboard-subtitle"><?php esc_html_e('Manage your HR tasks and track orders', 'pexpress'); ?></p>
         </div>
     </div>
 
@@ -404,14 +416,14 @@ $completed_total = count($completed_orders);
             </div>
             <div class="stat-card-content">
                 <h3 class="stat-card-value"><?php echo esc_html($completed_total); ?></h3>
-                <p class="stat-card-label"><?php esc_html_e('Completed Deliveries', 'pexpress'); ?></p>
+                <p class="stat-card-label"><?php esc_html_e('Completed Tasks', 'pexpress'); ?></p>
             </div>
         </div>
     </div>
 
     <div class="polar-tasks-section">
         <div class="polar-section-header">
-            <h2 class="polar-section-title"><?php esc_html_e('My Delivery Tasks', 'pexpress'); ?></h2>
+            <h2 class="polar-section-title"><?php esc_html_e('My HR Tasks', 'pexpress'); ?></h2>
         </div>
 
         <div class="polar-tabs">
@@ -436,7 +448,7 @@ $completed_total = count($completed_orders);
                             </svg>
                         </div>
                         <h3><?php esc_html_e('No pending tasks', 'pexpress'); ?></h3>
-                        <p><?php esc_html_e('You have no pending delivery tasks at this time.', 'pexpress'); ?></p>
+                        <p><?php esc_html_e('You have no pending HR tasks at this time.', 'pexpress'); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -459,7 +471,7 @@ $completed_total = count($completed_orders);
                         </svg>
                     </div>
                     <h3><?php esc_html_e('No orders in progress', 'pexpress'); ?></h3>
-                    <p><?php esc_html_e('No delivery tasks are currently in progress.', 'pexpress'); ?></p>
+                    <p><?php esc_html_e('No HR tasks are currently in progress.', 'pexpress'); ?></p>
                 </div>
             <?php endif; ?>
         </div>
@@ -481,7 +493,7 @@ $completed_total = count($completed_orders);
                         </svg>
                     </div>
                     <h3><?php esc_html_e('No completed orders yet', 'pexpress'); ?></h3>
-                    <p><?php esc_html_e('No delivery tasks have been completed yet.', 'pexpress'); ?></p>
+                    <p><?php esc_html_e('No HR tasks have been completed yet.', 'pexpress'); ?></p>
                 </div>
             <?php endif; ?>
         </div>
