@@ -159,6 +159,8 @@ class PExpress
         // AJAX handlers
         add_action('wp_ajax_polar_assign_order', array($this, 'ajax_assign_order'));
         add_action('wp_ajax_polar_update_order_status', array($this, 'ajax_update_order_status'));
+        add_action('wp_ajax_polar_get_order_tracking', array($this, 'ajax_get_order_tracking'));
+        add_action('wp_ajax_nopriv_polar_get_order_tracking', array($this, 'ajax_get_order_tracking'));
 
         // Plugin action links
         add_filter('plugin_action_links_' . PEXPRESS_PLUGIN_BASENAME, array($this, 'plugin_action_links'));
@@ -240,11 +242,12 @@ class PExpress
         // Only enqueue on pages with shortcodes
         global $post;
         if (
-            !$post || !has_shortcode($post->post_content, 'polar_hr')
+            !$post || (!has_shortcode($post->post_content, 'polar_hr')
             && !has_shortcode($post->post_content, 'polar_delivery')
             && !has_shortcode($post->post_content, 'polar_fridge')
             && !has_shortcode($post->post_content, 'polar_distributor')
             && !has_shortcode($post->post_content, 'polar_support')
+            && !has_shortcode($post->post_content, 'polar_order_tracking'))
         ) {
             return;
         }
@@ -748,6 +751,136 @@ class PExpress
                 PExpress_Core::update_role_status($order_id, 'distributor', $distributor_status);
             }
         }
+    }
+
+    /**
+     * AJAX handler for order tracking status
+     */
+    public function ajax_get_order_tracking()
+    {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'polar_order_tracking_nonce')) {
+            wp_send_json_error(array('message' => __('Security check failed.', 'pexpress')));
+        }
+
+        $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+        if (!$order_id) {
+            wp_send_json_error(array('message' => __('Invalid order ID.', 'pexpress')));
+        }
+
+        // Get order
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            wp_send_json_error(array('message' => __('Order not found.', 'pexpress')));
+        }
+
+        // Check if user owns this order (unless admin)
+        if (!is_user_logged_in()) {
+            wp_send_json_error(array('message' => __('Please log in to view order tracking.', 'pexpress')));
+        }
+
+        $current_user = wp_get_current_user();
+        if (!current_user_can('manage_woocommerce')) {
+            $customer_id = $order->get_customer_id();
+            if ($customer_id != $current_user->ID) {
+                wp_send_json_error(array('message' => __('Access denied.', 'pexpress')));
+            }
+        }
+
+        // Get role statuses
+        $hr_status = PExpress_Core::get_role_status($order_id, 'agency');
+        $delivery_status = PExpress_Core::get_role_status($order_id, 'delivery');
+        $fridge_status = PExpress_Core::get_role_status($order_id, 'fridge');
+        $distributor_status = PExpress_Core::get_role_status($order_id, 'distributor');
+
+        // Get assigned users
+        $delivery_user_id = PExpress_Core::get_delivery_user_id($order_id);
+        $fridge_user_id = PExpress_Core::get_fridge_user_id($order_id);
+        $distributor_user_id = PExpress_Core::get_distributor_user_id($order_id);
+
+        // Get user names
+        $delivery_user_name = $delivery_user_id ? get_userdata($delivery_user_id)->display_name : '';
+        $fridge_user_name = $fridge_user_id ? get_userdata($fridge_user_id)->display_name : '';
+        $distributor_user_name = $distributor_user_id ? get_userdata($distributor_user_id)->display_name : '';
+
+        // Status labels
+        $status_labels = array(
+            'agency' => array(
+                'pending' => __('Pending', 'pexpress'),
+                'assigned' => __('Assigned', 'pexpress'),
+            ),
+            'delivery' => array(
+                'pending' => __('Pending', 'pexpress'),
+                'meet_point_arrived' => __('Reached Meet Point', 'pexpress'),
+                'delivery_location_arrived' => __('Reached Delivery Location', 'pexpress'),
+                'service_in_progress' => __('Service In Progress', 'pexpress'),
+                'service_complete' => __('Service Completed', 'pexpress'),
+                'customer_served' => __('Ice-cream Delivered', 'pexpress'),
+            ),
+            'fridge' => array(
+                'pending' => __('Pending', 'pexpress'),
+                'fridge_drop' => __('Fridge Delivered On-site', 'pexpress'),
+                'fridge_collected' => __('Fridge Collected On-site', 'pexpress'),
+                'fridge_returned' => __('Fridge Returned to Base', 'pexpress'),
+            ),
+            'distributor' => array(
+                'pending' => __('Pending', 'pexpress'),
+                'distributor_prep' => __('Distributor Preparing', 'pexpress'),
+                'out_for_delivery' => __('Out for Delivery', 'pexpress'),
+                'handoff_complete' => __('Distributor Handoff Complete', 'pexpress'),
+            ),
+        );
+
+        // Helper function to get status label
+        $get_status_label = function($role, $status) use ($status_labels) {
+            if (isset($status_labels[$role][$status])) {
+                return $status_labels[$role][$status];
+            }
+            return ucfirst(str_replace('_', ' ', $status));
+        };
+
+        // Helper function to get status class
+        $get_status_class = function($status) {
+            $completed_statuses = array('customer_served', 'fridge_returned', 'handoff_complete', 'service_complete');
+            $in_progress_statuses = array('meet_point_arrived', 'delivery_location_arrived', 'service_in_progress', 'fridge_drop', 'fridge_collected', 'distributor_prep', 'out_for_delivery', 'assigned');
+            
+            if (in_array($status, $completed_statuses, true)) {
+                return 'completed';
+            } elseif (in_array($status, $in_progress_statuses, true)) {
+                return 'in-progress';
+            }
+            return 'pending';
+        };
+
+        wp_send_json_success(array(
+            'order_id' => $order_id,
+            'statuses' => array(
+                'hr' => array(
+                    'status' => $hr_status,
+                    'label' => $get_status_label('agency', $hr_status),
+                    'class' => $get_status_class($hr_status),
+                ),
+                'delivery' => array(
+                    'status' => $delivery_status,
+                    'label' => $get_status_label('delivery', $delivery_status),
+                    'class' => $get_status_class($delivery_status),
+                    'user_name' => $delivery_user_name,
+                ),
+                'fridge' => array(
+                    'status' => $fridge_status,
+                    'label' => $get_status_label('fridge', $fridge_status),
+                    'class' => $get_status_class($fridge_status),
+                    'user_name' => $fridge_user_name,
+                ),
+                'distributor' => array(
+                    'status' => $distributor_status,
+                    'label' => $get_status_label('distributor', $distributor_status),
+                    'class' => $get_status_class($distributor_status),
+                    'user_name' => $distributor_user_name,
+                ),
+            ),
+            'timestamp' => current_time('mysql'),
+        ));
     }
 
     /**

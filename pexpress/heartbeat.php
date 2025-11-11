@@ -57,6 +57,24 @@ class PExpress_Heartbeat
             $response['polar_tasks'] = $tasks;
         }
 
+        // Handle order tracking requests
+        if (isset($data['polar_order_tracking']) && isset($data['polar_order_tracking']['order_id'])) {
+            $order_id = absint($data['polar_order_tracking']['order_id']);
+            if ($order_id) {
+                $order = wc_get_order($order_id);
+                if ($order) {
+                    // Check if user owns this order (unless admin)
+                    $current_user = wp_get_current_user();
+                    if (current_user_can('manage_woocommerce') || $order->get_customer_id() == $current_user->ID) {
+                        $tracking_data = self::get_order_tracking_data($order_id);
+                        if ($tracking_data) {
+                            $response['polar_order_tracking'] = $tracking_data;
+                        }
+                    }
+                }
+            }
+        }
+
         return $response;
     }
 
@@ -178,5 +196,50 @@ class PExpress_Heartbeat
         }
 
         return $tasks;
+    }
+
+    /**
+     * Get order tracking data for heartbeat
+     *
+     * @param int $order_id Order ID.
+     * @return array|false
+     */
+    private static function get_order_tracking_data($order_id)
+    {
+        if (!function_exists('wc_get_order')) {
+            return false;
+        }
+
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            return false;
+        }
+
+        // Get role statuses
+        $hr_status = PExpress_Core::get_role_status($order_id, 'agency');
+        $delivery_status = PExpress_Core::get_role_status($order_id, 'delivery');
+        $fridge_status = PExpress_Core::get_role_status($order_id, 'fridge');
+        $distributor_status = PExpress_Core::get_role_status($order_id, 'distributor');
+
+        // Get assigned users
+        $delivery_user_id = PExpress_Core::get_delivery_user_id($order_id);
+        $fridge_user_id = PExpress_Core::get_fridge_user_id($order_id);
+        $distributor_user_id = PExpress_Core::get_distributor_user_id($order_id);
+
+        // Get user names
+        $delivery_user_name = $delivery_user_id ? get_userdata($delivery_user_id)->display_name : '';
+        $fridge_user_name = $fridge_user_id ? get_userdata($fridge_user_id)->display_name : '';
+        $distributor_user_name = $distributor_user_id ? get_userdata($distributor_user_id)->display_name : '';
+
+        return array(
+            'order_id' => $order_id,
+            'statuses' => array(
+                'hr' => array('status' => $hr_status),
+                'delivery' => array('status' => $delivery_status, 'user_name' => $delivery_user_name),
+                'fridge' => array('status' => $fridge_status, 'user_name' => $fridge_user_name),
+                'distributor' => array('status' => $distributor_status, 'user_name' => $distributor_user_name),
+            ),
+            'timestamp' => current_time('mysql'),
+        );
     }
 }

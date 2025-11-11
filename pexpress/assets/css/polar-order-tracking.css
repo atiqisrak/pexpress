@@ -1,0 +1,266 @@
+/**
+ * Order Tracking Styles
+ *
+ * @package PExpress
+ * @since 1.0.0
+ */
+
+.polar-order-tracking {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+}
+
+.polar-tracking-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.polar-tracking-header h2 {
+    margin: 0 0 10px 0;
+    font-size: 28px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.polar-order-info {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.polar-order-number {
+    font-weight: 600;
+    color: #2271b1;
+    font-size: 16px;
+}
+
+.polar-order-date {
+    color: #646970;
+    font-size: 14px;
+}
+
+.polar-tracking-statuses {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.polar-status-card {
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.polar-status-card:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.polar-status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.polar-status-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.polar-status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.polar-status-badge.polar-status-pending {
+    background: #f0f0f1;
+    color: #646970;
+}
+
+.polar-status-badge.polar-status-in-progress {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.polar-status-badge.polar-status-completed {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.polar-assigned-user {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: #f6f7f7;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.polar-user-label {
+    color: #646970;
+    margin-right: 5px;
+}
+
+.polar-user-name {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.polar-status-progress {
+    margin-top: 15px;
+}
+
+.polar-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #f0f0f1;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.polar-progress-fill {
+    height: 100%;
+    transition: width 0.5s ease, background-color 0.3s ease;
+    border-radius: 4px;
+}
+
+.polar-progress-fill.polar-progress-pending {
+    background: #dcdcde;
+    width: 0%;
+}
+
+.polar-progress-fill.polar-progress-in-progress {
+    background: #f0b849;
+    width: 50%;
+}
+
+.polar-progress-fill.polar-progress-completed {
+    background: #00a32a;
+    width: 100%;
+}
+
+.polar-tracking-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.polar-last-update {
+    font-size: 13px;
+    color: #646970;
+}
+
+.polar-update-label {
+    margin-right: 5px;
+}
+
+.polar-update-time {
+    font-weight: 500;
+}
+
+.polar-auto-refresh-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #646970;
+}
+
+.polar-refresh-icon {
+    animation: spin 2s linear infinite;
+    font-size: 16px;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.polar-order-tracking.polar-updated {
+    animation: flashUpdate 0.5s ease;
+}
+
+@keyframes flashUpdate {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .polar-order-tracking {
+        padding: 15px;
+    }
+
+    .polar-tracking-header h2 {
+        font-size: 24px;
+    }
+
+    .polar-tracking-statuses {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .polar-status-card {
+        padding: 15px;
+    }
+
+    .polar-status-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .polar-tracking-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .polar-order-tracking {
+        padding: 10px;
+    }
+
+    .polar-tracking-header h2 {
+        font-size: 20px;
+    }
+
+    .polar-status-header h3 {
+        font-size: 16px;
+    }
+
+    .polar-status-badge {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+}
+
