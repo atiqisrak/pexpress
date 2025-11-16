@@ -382,16 +382,37 @@ class PExpress
      */
     public function enqueue_assets()
     {
-        // Only enqueue on pages with shortcodes
-        global $post;
-        if (
-            !$post || (!has_shortcode($post->post_content, 'polar_hr')
-                && !has_shortcode($post->post_content, 'polar_delivery')
-                && !has_shortcode($post->post_content, 'polar_fridge')
-                && !has_shortcode($post->post_content, 'polar_distributor')
-                && !has_shortcode($post->post_content, 'polar_support')
-                && !has_shortcode($post->post_content, 'polar_order_tracking'))
-        ) {
+        // Check if shortcode is used - multiple methods for reliability
+        $has_shortcode = false;
+        global $post, $pexpress_shortcode_used;
+
+        // Method 1: Check global flag (set by shortcode detection)
+        if (isset($pexpress_shortcode_used) && $pexpress_shortcode_used) {
+            $has_shortcode = true;
+        }
+
+        // Method 2: Check post content
+        if (!$has_shortcode && $post && !empty($post->post_content)) {
+            $shortcodes = array('polar_hr', 'polar_agency', 'polar_delivery', 'polar_sr', 'polar_fridge', 'polar_distributor', 'polar_product_provider', 'polar_support', 'polar_order_tracking');
+            foreach ($shortcodes as $shortcode) {
+                if (has_shortcode($post->post_content, $shortcode)) {
+                    $has_shortcode = true;
+                    break;
+                }
+            }
+        }
+
+        // Method 3: Check if we're on a page that might have shortcodes (fallback)
+        if (!$has_shortcode && is_singular()) {
+            // Check page slug for common dashboard names
+            $page_slug = $post ? $post->post_name : '';
+            $dashboard_slugs = array('agency-dashboard', 'hr-dashboard', 'delivery-dashboard', 'fridge-dashboard', 'distributor-dashboard', 'support-dashboard', 'order-tracking');
+            if (in_array($page_slug, $dashboard_slugs, true)) {
+                $has_shortcode = true;
+            }
+        }
+
+        if (!$has_shortcode) {
             return;
         }
 

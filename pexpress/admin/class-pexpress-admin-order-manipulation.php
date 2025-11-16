@@ -47,6 +47,8 @@ class PExpress_Admin_Order_Manipulation
 
         // Enqueue assets on custom order edit page
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
+        // Fallback to ensure CSS loads for all users
+        add_action('admin_print_styles', array($this, 'enqueue_assets_fallback'));
 
         // Add body class to order edit page
         add_filter('admin_body_class', array($this, 'add_order_edit_body_class'));
@@ -167,11 +169,9 @@ class PExpress_Admin_Order_Manipulation
             return;
         }
 
-        // Check if user has permission
-        $current_user = wp_get_current_user();
-        if (!in_array('polar_support', $current_user->roles) && !in_array('polar_hr', $current_user->roles) && !current_user_can('edit_shop_orders')) {
-            return;
-        }
+        // CSS should load for anyone on the order edit page - no permission check needed
+        // Permission checks are handled in render_order_edit_page() and AJAX handlers
+        // Blocking CSS based on permissions breaks the UI unnecessarily
 
         // Enqueue main dashboard styles for consistency
         wp_enqueue_style(
@@ -288,13 +288,133 @@ class PExpress_Admin_Order_Manipulation
     }
 
     /**
+     * Fallback method to ensure CSS loads even if admin_enqueue_scripts hook fails
+     * This ensures CSS loads for all users regardless of capabilities
+     */
+    public function enqueue_assets_fallback()
+    {
+        // Only run if assets weren't already enqueued
+        if (wp_style_is('pexpress-order-edit', 'enqueued')) {
+            return;
+        }
+
+        // Check if we're on the order edit page
+        $is_order_edit_page = false;
+
+        // Check page parameter from URL
+        if (isset($_GET['page']) && $_GET['page'] === 'polar-express-order-edit') {
+            $is_order_edit_page = true;
+        }
+
+        // Also check screen ID if available
+        if (!$is_order_edit_page) {
+            $screen = get_current_screen();
+            if ($screen && isset($screen->id)) {
+                $screen_id = (string) $screen->id;
+                if (strpos($screen_id, 'polar-express-order-edit') !== false || strpos($screen_id, 'polar-express') !== false) {
+                    $is_order_edit_page = true;
+                }
+            }
+        }
+
+        if (!$is_order_edit_page) {
+            return;
+        }
+
+        // Enqueue styles
+        wp_enqueue_style(
+            'pexpress-admin',
+            PEXPRESS_PLUGIN_URL . 'assets/css/polar.css',
+            array(),
+            PEXPRESS_VERSION
+        );
+
+        wp_enqueue_style(
+            'pexpress-order-edit',
+            PEXPRESS_PLUGIN_URL . 'assets/css/polar-order-edit.css',
+            array('pexpress-admin'),
+            PEXPRESS_VERSION
+        );
+
+        // Enqueue Select2 if not already loaded
+        if (!wp_script_is('select2', 'enqueued') && !wp_script_is('select2', 'registered')) {
+            wp_enqueue_script('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array('jquery'), '4.1.0', true);
+            wp_enqueue_style('select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0');
+        } else {
+            wp_enqueue_script('select2');
+            wp_enqueue_style('select2');
+        }
+
+        wp_enqueue_script(
+            'pexpress-order-edit',
+            PEXPRESS_PLUGIN_URL . 'assets/js/polar-order-edit.js',
+            array('jquery', 'select2', 'wp-util'),
+            PEXPRESS_VERSION,
+            true
+        );
+
+        // Get order ID from URL
+        $order_id = isset($_GET['order_id']) ? absint($_GET['order_id']) : 0;
+        $wc_search_nonce = wp_create_nonce('search-products');
+
+        wp_localize_script(
+            'pexpress-order-edit',
+            'polarOrderEdit',
+            array(
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('polar_order_edit_nonce'),
+                'orderId' => $order_id,
+                'wcSearchNonce' => $wc_search_nonce,
+                'currency' => array(
+                    'symbol' => get_woocommerce_currency_symbol(),
+                    'price_format' => get_woocommerce_price_format(),
+                    'decimals' => wc_get_price_decimals(),
+                    'decimal_separator' => wc_get_price_decimal_separator(),
+                    'thousand_separator' => wc_get_price_thousand_separator(),
+                    'locale' => get_locale(),
+                ),
+                'i18n' => array(
+                    'searchProducts' => __('Search for a product...', 'pexpress'),
+                    'selectProduct' => __('Please select a product.', 'pexpress'),
+                    'confirmRemove' => __('Are you sure you want to remove this item?', 'pexpress'),
+                    'invalidQuantity' => __('Please enter a valid quantity.', 'pexpress'),
+                    'invalidPrice' => __('Please enter a valid price.', 'pexpress'),
+                    'saveItem' => __('Save', 'pexpress'),
+                    'cancelEdit' => __('Cancel', 'pexpress'),
+                    'quantityLabel' => __('Quantity', 'pexpress'),
+                    'priceLabel' => __('Price', 'pexpress'),
+                    'addProducts' => __('Add products', 'pexpress'),
+                    'addToOrder' => __('Add to order', 'pexpress'),
+                    'cancel' => __('Cancel', 'pexpress'),
+                    'closeModal' => __('Close modal', 'pexpress'),
+                    'modalProductLabel' => __('Product', 'pexpress'),
+                    'modalQuantityLabel' => __('Quantity', 'pexpress'),
+                    'addProductError' => __('Error adding item.', 'pexpress'),
+                    'genericError' => __('An error occurred. Please try again.', 'pexpress'),
+                ),
+            )
+        );
+    }
+
+    /**
      * Render custom order edit page
      */
     public function render_order_edit_page()
     {
-        // Check permissions
+        // Check permissions - allow any Polar Express role or users with edit_shop_orders capability
         $current_user = wp_get_current_user();
-        if (!in_array('polar_support', $current_user->roles) && !in_array('polar_hr', $current_user->roles) && !current_user_can('edit_shop_orders')) {
+        $has_polar_role = false;
+
+        // Check for Polar Express roles
+        $polar_roles = array('polar_support', 'polar_hr', 'polar_delivery', 'polar_fridge', 'polar_distributor');
+        foreach ($polar_roles as $role) {
+            if (in_array($role, $current_user->roles, true)) {
+                $has_polar_role = true;
+                break;
+            }
+        }
+
+        if (!$has_polar_role && !current_user_can('edit_shop_orders')) {
             wp_die(__('You do not have permission to access this page.', 'pexpress'));
         }
 

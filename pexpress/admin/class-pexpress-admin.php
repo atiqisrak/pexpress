@@ -64,6 +64,8 @@ class PExpress_Admin
         add_action('admin_menu', array($this->modules['menus'], 'register_menus'));
         add_action('admin_init', array($this->modules['settings'], 'register_settings'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
+        // Fallback to ensure CSS loads for all users - use admin_print_styles as backup
+        add_action('admin_print_styles', array($this, 'enqueue_admin_assets_fallback'));
         add_action('admin_post_pexpress_assign_role', array($this->modules['roles'], 'handle_role_assignment'));
         add_action('admin_post_pexpress_add_user_to_role', array($this->modules['roles'], 'handle_add_user_to_role'));
         add_action('admin_post_pexpress_remove_user_from_role', array($this->modules['roles'], 'handle_remove_user_from_role'));
@@ -113,14 +115,37 @@ class PExpress_Admin
     /**
      * Enqueue admin assets
      */
-    public function enqueue_admin_assets($hook)
+    public function enqueue_admin_assets($hook = '')
     {
-        // Only load on Polar Express pages
-        if (strpos($hook, 'polar-express') === false) {
+        // Check if we're on a Polar Express page
+        $is_polar_page = false;
+
+        // Check hook name (WordPress uses formats like 'toplevel_page_polar-express' or 'polar-express_page_polar-express-settings')
+        if (!empty($hook) && (strpos($hook, 'polar-express') !== false || strpos($hook, 'polar_express') !== false)) {
+            $is_polar_page = true;
+        }
+
+        // Fallback: Check page parameter from URL (most reliable)
+        if (!$is_polar_page && isset($_GET['page'])) {
+            $page = sanitize_text_field($_GET['page']);
+            if (strpos($page, 'polar-express') !== false || strpos($page, 'polar_express') !== false) {
+                $is_polar_page = true;
+            }
+        }
+
+        // Also check screen ID if available
+        if (!$is_polar_page) {
+            $screen = get_current_screen();
+            if ($screen && isset($screen->id) && (strpos($screen->id, 'polar-express') !== false || strpos($screen->id, 'polar_express') !== false)) {
+                $is_polar_page = true;
+            }
+        }
+
+        if (!$is_polar_page) {
             return;
         }
 
-        // Enqueue modern admin styles for all admin pages
+        // Enqueue modern admin styles for all admin pages - no capability check needed
         wp_enqueue_style(
             'pexpress-admin-modern',
             PEXPRESS_PLUGIN_URL . 'assets/css/polar-admin-modern.css',
@@ -137,7 +162,8 @@ class PExpress_Admin
         );
 
         // Enqueue setup wizard script if on setup wizard page
-        if (strpos($hook, 'polar-express-setup-wizard') !== false) {
+        $page = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : '';
+        if (strpos($hook, 'polar-express-setup-wizard') !== false || $page === 'polar-express-setup-wizard') {
             wp_enqueue_script(
                 'pexpress-admin-setup',
                 PEXPRESS_PLUGIN_URL . 'assets/js/polar-admin-setup.js',
@@ -146,6 +172,74 @@ class PExpress_Admin
                 true
             );
         }
+
+        wp_enqueue_script(
+            'pexpress-admin',
+            PEXPRESS_PLUGIN_URL . 'assets/js/polar.js',
+            array('jquery', 'heartbeat'),
+            PEXPRESS_VERSION,
+            true
+        );
+
+        wp_localize_script(
+            'pexpress-admin',
+            'polarExpress',
+            array(
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('polar_express_nonce'),
+                'heartbeatInterval' => get_option('pexpress_options')['heartbeat_interval'] ?? 15
+            )
+        );
+    }
+
+    /**
+     * Fallback method to ensure CSS loads even if admin_enqueue_scripts hook fails
+     * This ensures CSS loads for all users regardless of capabilities
+     */
+    public function enqueue_admin_assets_fallback()
+    {
+        // Only run if assets weren't already enqueued
+        if (wp_style_is('pexpress-admin-modern', 'enqueued')) {
+            return;
+        }
+
+        // Check if we're on a Polar Express page
+        $is_polar_page = false;
+
+        // Check page parameter from URL (most reliable method)
+        if (isset($_GET['page'])) {
+            $page = sanitize_text_field($_GET['page']);
+            if (strpos($page, 'polar-express') !== false || strpos($page, 'polar_express') !== false) {
+                $is_polar_page = true;
+            }
+        }
+
+        // Also check screen ID if available
+        if (!$is_polar_page) {
+            $screen = get_current_screen();
+            if ($screen && isset($screen->id) && (strpos($screen->id, 'polar-express') !== false || strpos($screen->id, 'polar_express') !== false)) {
+                $is_polar_page = true;
+            }
+        }
+
+        if (!$is_polar_page) {
+            return;
+        }
+
+        // Enqueue styles using wp_enqueue_style even in admin_head
+        wp_enqueue_style(
+            'pexpress-admin-modern',
+            PEXPRESS_PLUGIN_URL . 'assets/css/polar-admin-modern.css',
+            array(),
+            PEXPRESS_VERSION
+        );
+
+        wp_enqueue_style(
+            'pexpress-admin',
+            PEXPRESS_PLUGIN_URL . 'assets/css/polar.css',
+            array(),
+            PEXPRESS_VERSION
+        );
 
         wp_enqueue_script(
             'pexpress-admin',

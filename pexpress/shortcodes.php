@@ -12,6 +12,63 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Global flag to track if shortcode was used
+global $pexpress_shortcode_used;
+$pexpress_shortcode_used = false;
+
+// Detect shortcodes early in the_content filter
+add_filter('the_content', 'pexpress_detect_shortcodes', 1);
+function pexpress_detect_shortcodes($content)
+{
+    global $pexpress_shortcode_used;
+    $shortcodes = array('polar_hr', 'polar_agency', 'polar_delivery', 'polar_sr', 'polar_fridge', 'polar_distributor', 'polar_product_provider', 'polar_support');
+    foreach ($shortcodes as $shortcode) {
+        if (has_shortcode($content, $shortcode)) {
+            $pexpress_shortcode_used = true;
+            break;
+        }
+    }
+    return $content;
+}
+
+// Output CSS directly in head when shortcode is detected
+// This ensures CSS loads even if shortcode runs after wp_enqueue_scripts
+add_action('wp_head', 'pexpress_output_shortcode_css', 99);
+function pexpress_output_shortcode_css()
+{
+    global $pexpress_shortcode_used;
+    if ($pexpress_shortcode_used && !wp_style_is('polar-express', 'enqueued') && !wp_style_is('polar-express', 'done')) {
+        $css_url = PEXPRESS_PLUGIN_URL . 'assets/css/polar.css';
+        $version = PEXPRESS_VERSION;
+        echo '<link rel="stylesheet" id="polar-express-css" href="' . esc_url($css_url) . '?ver=' . esc_attr($version) . '" type="text/css" media="all">' . "\n";
+    }
+}
+
+// Enqueue scripts in footer (scripts can load in footer)
+add_action('wp_footer', 'pexpress_enqueue_shortcode_scripts', 1);
+function pexpress_enqueue_shortcode_scripts()
+{
+    global $pexpress_shortcode_used;
+    if ($pexpress_shortcode_used && !wp_script_is('polar-express', 'enqueued')) {
+        wp_enqueue_script(
+            'polar-express',
+            PEXPRESS_PLUGIN_URL . 'assets/js/polar.js',
+            array('jquery', 'heartbeat'),
+            PEXPRESS_VERSION,
+            true
+        );
+
+        wp_localize_script(
+            'polar-express',
+            'polarExpress',
+            array(
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce' => wp_create_nonce('polar_express_nonce'),
+            )
+        );
+    }
+}
+
 /**
  * Agency Dashboard Shortcode (formerly HR)
  */
@@ -36,6 +93,10 @@ function polar_agency_dashboard_shortcode($atts)
     $hr_users = get_users(array('role' => 'polar_delivery'));
     $fridge_users = get_users(array('role' => 'polar_fridge'));
     $distributor_users = get_users(array('role' => 'polar_distributor'));
+
+    // Set flag to enqueue assets
+    global $pexpress_shortcode_used;
+    $pexpress_shortcode_used = true;
 
     ob_start();
     include PEXPRESS_PLUGIN_DIR . 'templates/hr-dashboard.php';
@@ -69,6 +130,10 @@ function polar_hr_dashboard_shortcode($atts)
             $delivered_orders[] = $order;
         }
     }
+
+    // Set flag to enqueue assets
+    global $pexpress_shortcode_used;
+    $pexpress_shortcode_used = true;
 
     ob_start();
     include PEXPRESS_PLUGIN_DIR . 'templates/delivery-dashboard.php';
@@ -104,6 +169,10 @@ function polar_fridge_dashboard_shortcode($atts)
         }
     }
 
+    // Set flag to enqueue assets
+    global $pexpress_shortcode_used;
+    $pexpress_shortcode_used = true;
+
     ob_start();
     include PEXPRESS_PLUGIN_DIR . 'templates/fridge-dashboard.php';
     return ob_get_clean();
@@ -124,6 +193,10 @@ function polar_distributor_dashboard_shortcode($atts)
 
     // Get orders assigned to this distributor
     $assigned_orders = PExpress_Core::get_assigned_orders($user_id, 'distributor');
+
+    // Set flag to enqueue assets
+    global $pexpress_shortcode_used;
+    $pexpress_shortcode_used = true;
 
     ob_start();
     include PEXPRESS_PLUGIN_DIR . 'templates/distributor-dashboard.php';
@@ -153,6 +226,10 @@ function polar_support_dashboard_shortcode($atts)
     if (!is_array($recent_orders)) {
         $recent_orders = array();
     }
+
+    // Set flag to enqueue assets
+    global $pexpress_shortcode_used;
+    $pexpress_shortcode_used = true;
 
     ob_start();
     include PEXPRESS_PLUGIN_DIR . 'templates/support-dashboard.php';
@@ -258,13 +335,13 @@ function polar_order_tracking_shortcode($atts)
         $delivery_user = get_userdata($delivery_user_id);
         $delivery_user_name = $delivery_user ? $delivery_user->display_name : '';
     }
-    
+
     $fridge_user_name = '';
     if ($fridge_user_id) {
         $fridge_user = get_userdata($fridge_user_id);
         $fridge_user_name = $fridge_user ? $fridge_user->display_name : '';
     }
-    
+
     $distributor_user_name = '';
     if ($distributor_user_id) {
         $distributor_user = get_userdata($distributor_user_id);
@@ -400,7 +477,7 @@ function polar_order_information_shortcode($atts)
 
     // Get order items
     $order_items = $order->get_items();
-    
+
     // Get order meta
     $billing_email = $order->get_billing_email() ? $order->get_billing_email() : '';
     $billing_phone = $order->get_billing_phone() ? $order->get_billing_phone() : '';
@@ -451,7 +528,7 @@ function polar_order_information_shortcode($atts)
     $meeting_datetime_display = $meeting_datetime_display;
 
     ob_start();
-    ?>
+?>
     <div class="wrap polar-dashboard polar-order-information">
         <div class="polar-dashboard-header">
             <div class="polar-header-content">
@@ -710,6 +787,6 @@ function polar_order_information_shortcode($atts)
             <?php endif; ?>
         </div>
     </div>
-    <?php
+<?php
     return ob_get_clean();
 }
