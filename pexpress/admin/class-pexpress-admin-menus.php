@@ -32,6 +32,17 @@ class PExpress_Admin_Menus
             in_array('polar_support', $current_user->roles) ||
             current_user_can('manage_woocommerce');
 
+        // Always register the order edit page (hidden menu) so it's accessible
+        // even if capabilities are granted via filters
+        add_submenu_page(
+            null, // Hidden from menu
+            __('Edit Order', 'pexpress'),
+            __('Edit Order', 'pexpress'),
+            'read', // Use basic read capability, actual permissions checked in render method
+            'polar-express-order-edit',
+            array($this, 'render_order_edit_page')
+        );
+
         if (!$has_role) {
             return;
         }
@@ -136,17 +147,6 @@ class PExpress_Admin_Menus
             );
         }
 
-        // Order Edit (for Support and HR)
-        if (in_array('polar_support', $current_user->roles) || in_array('polar_hr', $current_user->roles) || current_user_can('edit_shop_orders')) {
-            add_submenu_page(
-                null, // Hidden from menu
-                __('Edit Order', 'pexpress'),
-                __('Edit Order', 'pexpress'),
-                'edit_shop_orders',
-                'polar-express-order-edit',
-                array($this, 'render_order_edit_page')
-            );
-        }
 
         // Settings (HR and Shop Managers only)
         if (in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) {
@@ -193,6 +193,18 @@ class PExpress_Admin_Menus
                 'manage_woocommerce',
                 'polar-express-changelog',
                 array($this, 'render_changelog_page')
+            );
+        }
+
+        // Role Capabilities (HR and Shop Managers only)
+        if (in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce')) {
+            add_submenu_page(
+                'polar-express',
+                __('Role Capabilities', 'pexpress'),
+                __('Role Capabilities', 'pexpress'),
+                'manage_woocommerce',
+                'polar-express-role-capabilities',
+                array($this, 'render_role_capabilities_page')
             );
         }
     }
@@ -285,5 +297,14 @@ class PExpress_Admin_Menus
     {
         $wizard = new PExpress_Admin_Setup_Wizard();
         $wizard->render_setup_wizard();
+    }
+
+    /**
+     * Render Role Capabilities page
+     */
+    public function render_role_capabilities_page()
+    {
+        $capabilities = new PExpress_Role_Capabilities();
+        $capabilities->render_role_capabilities_page();
     }
 }

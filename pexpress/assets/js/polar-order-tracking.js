@@ -131,9 +131,9 @@
             },
             distributor: {
                 pending: 'Pending',
-                distributor_prep: 'Distributor Preparing',
+                distributor_prep: 'Product Provider Preparing',
                 out_for_delivery: 'Out for Delivery',
-                handoff_complete: 'Distributor Handoff Complete',
+                handoff_complete: 'Product Provider Handoff Complete',
             },
         };
 
@@ -201,7 +201,7 @@
 
         var statuses = data.statuses;
 
-        // Update HR status
+        // Update Agency status
         if (statuses.hr) {
             updateStatusCard('agency', statuses.hr);
         }

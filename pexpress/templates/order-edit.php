@@ -21,7 +21,19 @@ $delivery_id = isset($delivery_id) ? $delivery_id : 0;
 $fridge_id = isset($fridge_id) ? $fridge_id : 0;
 $distributor_id = isset($distributor_id) ? $distributor_id : 0;
 
-if (!$order) {
+if (!$order || !is_a($order, 'WC_Order')) {
+?>
+    <div class="wrap">
+        <div class="notice notice-error">
+            <p><?php esc_html_e('Order not found or invalid order ID.', 'pexpress'); ?></p>
+        </div>
+        <p>
+            <a href="<?php echo esc_url(admin_url('admin.php?page=polar-express-support')); ?>" class="button">
+                <?php esc_html_e('Back to Support Dashboard', 'pexpress'); ?>
+            </a>
+        </p>
+    </div>
+<?php
     return;
 }
 
@@ -44,7 +56,7 @@ if (!empty($forwarded_at)) {
     $forwarded_at_display = mysql2date(get_option('date_format') . ' ' . get_option('time_format'), $forwarded_at);
 }
 $is_forwarded = !empty($forwarded_at) || !empty($forwarded_by);
-$forward_button_label = $is_forwarded ? __('Update Forwarding', 'pexpress') : __('Forward to HR', 'pexpress');
+$forward_button_label = $is_forwarded ? __('Update Forwarding', 'pexpress') : __('Forward to SR', 'pexpress');
 ?>
 
 <div class="wrap polar-dashboard polar-order-edit-dashboard">
@@ -261,42 +273,84 @@ $forward_button_label = $is_forwarded ? __('Update Forwarding', 'pexpress') : __
                 </div>
 
                 <script type="text/template" id="tmpl-wc-modal-add-products">
-                    <div class="wc-backbone-modal">
-                        <div class="wc-backbone-modal-content">
+                    <div class="wc-backbone-modal polar-add-product-modal">
+                        <div class="wc-backbone-modal-content polar-modal-wrapper">
                             <section class="wc-backbone-modal-main" role="main">
-                                <header class="wc-backbone-modal-header">
-                                    <h1><?php esc_html_e('Add products', 'woocommerce'); ?></h1>
-                                    <button class="modal-close modal-close-link dashicons dashicons-no-alt">
-                                        <span class="screen-reader-text"><?php esc_html_e('Close modal panel', 'woocommerce'); ?></span>
+                                <header class="wc-backbone-modal-header polar-modal-header">
+                                    <div class="polar-modal-header-content">
+                                        <div class="polar-modal-icon">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M12 4V20M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                        <div class="polar-modal-title-wrapper">
+                                            <h1><?php esc_html_e('Add Products to Order', 'pexpress'); ?></h1>
+                                            <p class="polar-modal-subtitle"><?php esc_html_e('Search and select products to add to this order', 'pexpress'); ?></p>
+                                        </div>
+                                    </div>
+                                    <button class="modal-close modal-close-link" aria-label="<?php esc_attr_e('Close modal panel', 'woocommerce'); ?>">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
                                     </button>
                                 </header>
-                                <article>
+                                <article class="polar-modal-body">
                                     <form action="" method="post" class="polar-modal-add-product-form">
-                                        <table class="widefat">
+                                        <table class="widefat polar-modal-products-table">
                                             <thead>
                                                 <tr>
-                                                    <th><?php esc_html_e('Product', 'woocommerce'); ?></th>
-                                                    <th><?php esc_html_e('Quantity', 'woocommerce'); ?></th>
+                                                    <th class="polar-modal-th-product">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 6px;">
+                                                            <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        <?php esc_html_e('Product', 'woocommerce'); ?>
+                                                    </th>
+                                                    <th class="polar-modal-th-quantity">
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 6px;">
+                                                            <path d="M3 6H21M6 6V4C6 3.46957 6.21071 2.96086 6.58579 2.58579C6.96086 2.21071 7.46957 2 8 2H16C16.5304 2 17.0391 2.21071 17.4142 2.58579C17.7893 2.96086 18 3.46957 18 4V6M6 6L5 20C5 20.5304 5.21071 21.0391 5.58579 21.4142C5.96086 21.7893 6.46957 22 7 22H17C17.5304 22 18.0391 21.7893 18.4142 21.4142C18.7893 21.0391 19 20.5304 19 20L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        </svg>
+                                                        <?php esc_html_e('Quantity', 'woocommerce'); ?>
+                                                    </th>
+                                                    <th class="polar-modal-th-actions" style="width: 60px;"></th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td>
-                                                        <select class="wc-product-search" name="item_id" data-allow_clear="true" data-display_stock="true" data-exclude_type="variable" data-placeholder="<?php esc_attr_e('Search for a product&hellip;', 'woocommerce'); ?>"></select>
+                                            <tbody data-row='<tr data-row-index="{index}"><td class="polar-modal-td-product"><select id="polar-product-search-{index}" class="wc-product-search" name="item_id[{index}]" data-allow_clear="true" data-display_stock="true" data-exclude_type="variable" data-placeholder="<?php echo esc_js(__('Search for a product&hellip;', 'woocommerce')); ?>"></select></td><td class="polar-modal-td-quantity"><input type="number" id="polar-quantity-{index}" step="1" min="1" max="9999" autocomplete="off" name="item_qty[{index}]" value="1" placeholder="1" class="quantity polar-modal-quantity-field" /></td><td class="polar-modal-td-actions"><button type="button" class="polar-remove-row-btn" title="<?php echo esc_js(__('Remove row', 'pexpress')); ?>"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td></tr>'>
+                                                <tr data-row-index="0">
+                                                    <td class="polar-modal-td-product">
+                                                        <select id="polar-product-search-0" class="wc-product-search" name="item_id" data-allow_clear="true" data-display_stock="true" data-exclude_type="variable" data-placeholder="<?php esc_attr_e('Search for a product&hellip;', 'woocommerce'); ?>"></select>
                                                     </td>
-                                                    <td>
-                                                        <input type="number" step="1" min="1" max="9999" autocomplete="off" name="item_qty" placeholder="1" size="4" class="quantity polar-modal-quantity-field" />
+                                                    <td class="polar-modal-td-quantity">
+                                                        <input type="number" id="polar-quantity-0" step="1" min="1" max="9999" autocomplete="off" name="item_qty" value="1" placeholder="1" class="quantity polar-modal-quantity-field" />
+                                                    </td>
+                                                    <td class="polar-modal-td-actions">
+                                                        <button type="button" class="polar-remove-row-btn" style="display: none;" title="<?php esc_attr_e('Remove row', 'pexpress'); ?>">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                                            </svg>
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             </tbody>
                                         </table>
+                                        <button type="button" class="polar-add-row-btn">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M12 4V20M4 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                            <?php esc_html_e('Add Another Product', 'pexpress'); ?>
+                                        </button>
                                     </form>
                                 </article>
-                                <footer>
+                                <footer class="polar-modal-footer">
                                     <div class="inner">
-                                        <button type="button" class="button cancel-action"><?php esc_html_e('Cancel', 'woocommerce'); ?></button>
-                                        <button type="button" class="button button-primary button-large polar-modal-submit">
-                                            <?php esc_html_e('Add to order', 'woocommerce'); ?>
+                                        <button type="button" class="button cancel-action polar-btn-secondary">
+                                            <?php esc_html_e('Cancel', 'woocommerce'); ?>
+                                        </button>
+                                        <button type="button" class="button button-primary button-large polar-modal-submit polar-btn-primary">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;">
+                                                <path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            </svg>
+                                            <?php esc_html_e('Add to Order', 'woocommerce'); ?>
                                         </button>
                                     </div>
                                 </footer>
@@ -310,9 +364,9 @@ $forward_button_label = $is_forwarded ? __('Update Forwarding', 'pexpress') : __
             <!-- Forward to HR -->
             <div class="polar-order-item polar-forward-card">
                 <div class="order-header">
-                    <h4><?php esc_html_e('Forward to HR', 'pexpress'); ?></h4>
+                    <h4><?php esc_html_e('Forward to SR', 'pexpress'); ?></h4>
                     <span class="forward-status-badge <?php echo $is_forwarded ? 'is-forwarded' : 'is-idle'; ?>">
-                        <?php echo $is_forwarded ? esc_html__('Forwarded to HR', 'pexpress') : esc_html__('Not Yet Forwarded', 'pexpress'); ?>
+                        <?php echo $is_forwarded ? esc_html__('Forwarded to SR', 'pexpress') : esc_html__('Not Yet Forwarded', 'pexpress'); ?>
                     </span>
                 </div>
                 <div class="forward-body">
@@ -343,22 +397,67 @@ $forward_button_label = $is_forwarded ? __('Update Forwarding', 'pexpress') : __
                         </p>
                     <?php endif; ?>
                     <label for="polar-forward-note" class="forward-label">
-                        <?php esc_html_e('Support Notes for HR', 'pexpress'); ?>
+                        <?php esc_html_e('Support Notes for SR', 'pexpress'); ?>
                     </label>
-                    <textarea id="polar-forward-note" class="polar-textarea forward-note" rows="3" placeholder="<?php esc_attr_e('Provide any context HR should know before assignment...', 'pexpress'); ?>"><?php echo esc_textarea($forward_note); ?></textarea>
+                    <textarea id="polar-forward-note" class="polar-textarea forward-note" rows="3" placeholder="<?php esc_attr_e('Provide any context SR should know before assignment...', 'pexpress'); ?>"><?php echo esc_textarea($forward_note); ?></textarea>
                     <div class="forward-actions">
                         <button type="button" class="polar-btn polar-btn-primary polar-forward-to-hr" data-order-id="<?php echo esc_attr($order_id); ?>" <?php echo $is_forwarded && !$needs_assignment ? 'disabled' : ''; ?>>
-                            <?php echo esc_html($forward_button_label); ?>
+                            <?php echo esc_html(str_replace('HR', 'SR', $forward_button_label)); ?>
                         </button>
                         <?php if ($is_forwarded) : ?>
                             <button type="button" class="polar-btn polar-btn-secondary polar-revoke-forward" data-order-id="<?php echo esc_attr($order_id); ?>" style="margin-left: 10px;">
-                                <?php esc_html_e('Revoke from HR', 'pexpress'); ?>
+                                <?php esc_html_e('Revoke from SR', 'pexpress'); ?>
                             </button>
                         <?php endif; ?>
                         <span class="polar-forward-feedback" role="status" aria-live="polite"></span>
                     </div>
                 </div>
             </div>
+
+            <!-- Order Actions -->
+            <?php
+            $current_user = wp_get_current_user();
+            $is_support = in_array('polar_support', $current_user->roles) || current_user_can('manage_woocommerce');
+            $order_confirmed = PExpress_Core::get_order_meta($order_id, '_polar_order_confirmed');
+            $order_completed = PExpress_Core::get_order_meta($order_id, '_polar_order_completed');
+            ?>
+            <?php if ($is_support) : ?>
+                <div class="polar-order-item polar-order-actions-card">
+                    <div class="order-header">
+                        <h4><?php esc_html_e('Order Actions', 'pexpress'); ?></h4>
+                    </div>
+                    <div class="order-actions-body">
+                        <?php if (!$order_confirmed) : ?>
+                            <button type="button" class="polar-btn polar-btn-success polar-confirm-order" data-order-id="<?php echo esc_attr($order_id); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('polar_confirm_order')); ?>">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <?php esc_html_e('Confirm Order', 'pexpress'); ?>
+                            </button>
+                        <?php else : ?>
+                            <p class="polar-action-status">
+                                <span class="dashicons dashicons-yes-alt" style="color: #46b450;"></span>
+                                <?php esc_html_e('Order Confirmed', 'pexpress'); ?>
+                            </p>
+                        <?php endif; ?>
+
+                        <?php if (!$order_completed && $order->get_status() !== 'completed') : ?>
+                            <button type="button" class="polar-btn polar-btn-primary polar-complete-order" data-order-id="<?php echo esc_attr($order_id); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('polar_complete_order')); ?>" style="margin-top: 10px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <?php esc_html_e('Order Completed', 'pexpress'); ?>
+                            </button>
+                        <?php elseif ($order_completed || $order->get_status() === 'completed') : ?>
+                            <p class="polar-action-status" style="margin-top: 10px;">
+                                <span class="dashicons dashicons-yes-alt" style="color: #46b450;"></span>
+                                <?php esc_html_e('Order Completed', 'pexpress'); ?>
+                            </p>
+                        <?php endif; ?>
+                        <span class="polar-action-feedback" role="status" aria-live="polite"></span>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <!-- Assignments -->
             <?php if ($delivery_id || $fridge_id || $distributor_id) : ?>
@@ -395,7 +494,7 @@ $forward_button_label = $is_forwarded ? __('Update Forwarding', 'pexpress') : __
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M5 13L12 20L19 13M12 4V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
-                                    <?php esc_html_e('Distributor:', 'pexpress'); ?> <?php echo esc_html($distributor_user ? $distributor_user->display_name : 'N/A'); ?>
+                                    <?php esc_html_e('Product Provider:', 'pexpress'); ?> <?php echo esc_html($distributor_user ? $distributor_user->display_name : 'N/A'); ?>
                                 </span>
                             <?php endif; ?>
                         </div>

@@ -9,6 +9,8 @@
             this.initAddItemModal();
             this.initForwardToHR();
             this.initRevokeFromHR();
+            this.initConfirmOrder();
+            this.initCompleteOrder();
         },
 
         initProductSearch: function () {
@@ -259,7 +261,7 @@
                     const $forwardMeta = $('.forward-meta').length ? $('.forward-meta') : $('<p class="forward-meta" />').insertBefore($('.forward-label').first());
 
                     $button.prop('disabled', true).addClass('is-loading');
-                    $feedback.removeClass('is-error is-success').text(polarOrderEdit.i18n.forwarding || 'Forwarding to HR...');
+                    $feedback.removeClass('is-error is-success').text(polarOrderEdit.i18n.forwarding || 'Forwarding to SR...');
 
                     $.ajax({
                         url: polarOrderEdit.ajaxUrl,
@@ -282,11 +284,11 @@
                             }
 
                             const data = response.data || {};
-                            const forwardedMessage = polarOrderEdit.i18n.forwardSuccess || 'Order forwarded to HR.';
+                            const forwardedMessage = polarOrderEdit.i18n.forwardSuccess || 'Order forwarded to SR.';
                             $feedback.addClass('is-success').text(data.message || forwardedMessage);
 
                             if ($statusBadge.length) {
-                                $statusBadge.removeClass('is-idle').addClass('is-pending').text(polarOrderEdit.i18n.awaitingAssignment || 'Awaiting HR Assignment');
+                                $statusBadge.removeClass('is-idle').addClass('is-pending').text(polarOrderEdit.i18n.awaitingAssignment || 'Awaiting SR Assignment');
                             }
 
                             const summary = data.summary || '';
@@ -337,7 +339,7 @@
                         return;
                     }
 
-                    if (!confirm(polarOrderEdit.i18n.revokeConfirm || 'Are you sure you want to revoke this order from HR?')) {
+                    if (!confirm(polarOrderEdit.i18n.revokeConfirm || 'Are you sure you want to revoke this order from SR?')) {
                         return;
                     }
 
@@ -348,7 +350,7 @@
                     const $revokeButton = $button;
 
                     $button.prop('disabled', true).addClass('is-loading');
-                    $feedback.removeClass('is-error is-success').text(polarOrderEdit.i18n.revoking || 'Revoking from HR...');
+                    $feedback.removeClass('is-error is-success').text(polarOrderEdit.i18n.revoking || 'Revoking from SR...');
 
                     $.ajax({
                         url: polarOrderEdit.ajaxUrl,
@@ -372,9 +374,9 @@
                             // Update UI
                             $statusBadge.removeClass('is-forwarded').addClass('is-idle').text(polarOrderEdit.i18n.notForwarded || 'Not Yet Forwarded');
                             $forwardMeta.remove();
-                            $forwardButton.prop('disabled', false).text(polarOrderEdit.i18n.forwardToHR || 'Forward to HR');
+                            $forwardButton.prop('disabled', false).text(polarOrderEdit.i18n.forwardToHR || 'Forward to SR');
                             $revokeButton.remove();
-                            $feedback.addClass('is-success').text(polarOrderEdit.i18n.revokeSuccess || 'Order revoked from HR successfully.');
+                            $feedback.addClass('is-success').text(polarOrderEdit.i18n.revokeSuccess || 'Order revoked from SR successfully.');
 
                             setTimeout(function () {
                                 $feedback.removeClass('is-success').text('');
@@ -405,16 +407,19 @@
                 }
 
                 const $modal = $('.wc-backbone-modal');
-                $modal.addClass('polar-order-modal');
-                $modal.find('.wc-backbone-modal-content').addClass('polar-order-modal__content');
-                const $table = $modal.find('table.widefat');
+                $modal.addClass('polar-order-modal polar-add-product-modal');
+                const $modalContent = $modal.find('.wc-backbone-modal-content');
+                $modalContent.addClass('polar-order-modal__content polar-modal-wrapper');
+                const $table = $modal.find('table.widefat, .polar-modal-products-table');
                 const $tbody = $table.find('tbody');
                 const rowTemplate = $tbody.data('row');
 
+                // Initialize Select2 for existing product searches
                 self.initSelect2($modal.find('.wc-product-search'));
                 $(document.body).trigger('wc-enhanced-select-init');
 
-                $modal.find('.quantity').attr({
+                // Set up quantity fields
+                $modal.find('.quantity, .polar-modal-quantity-field').attr({
                     min: 1,
                     step: 1,
                 }).each(function () {
@@ -423,6 +428,56 @@
                     }
                 });
 
+                // Handle add row button click
+                $modal.off('click.polarAddModal', '.polar-add-row-btn').on('click.polarAddModal', '.polar-add-row-btn', function (e) {
+                    e.preventDefault();
+                    if (!rowTemplate) {
+                        return;
+                    }
+                    const index = $tbody.find('tr').length;
+                    const newRowHtml = rowTemplate.replace(/\{index\}/g, index.toString());
+                    const $newRow = $(newRowHtml);
+                    $tbody.append($newRow);
+
+                    // Show remove button if there are multiple rows
+                    if ($tbody.find('tr').length > 1) {
+                        $tbody.find('tr').each(function () {
+                            $(this).find('.polar-remove-row-btn').show();
+                        });
+                    }
+
+                    // Initialize Select2 for new row
+                    const $newSelect = $newRow.find('.wc-product-search');
+                    self.initSelect2($newSelect);
+                    $(document.body).trigger('wc-enhanced-select-init');
+
+                    // Set up quantity field
+                    const $newQty = $newRow.find('.quantity, .polar-modal-quantity-field');
+                    $newQty.attr({ min: 1, step: 1 }).val(1);
+
+                    // Scroll to new row
+                    $newRow[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+
+                // Handle remove row button click
+                $modal.off('click.polarAddModal', '.polar-remove-row-btn').on('click.polarAddModal', '.polar-remove-row-btn', function (e) {
+                    e.preventDefault();
+                    const $row = $(this).closest('tr');
+                    if ($tbody.find('tr').length <= 1) {
+                        return; // Don't remove if it's the only row
+                    }
+                    $row.fadeOut(200, function () {
+                        $(this).remove();
+                        // Hide remove buttons if only one row remains
+                        if ($tbody.find('tr').length === 1) {
+                            $tbody.find('tr').each(function () {
+                                $(this).find('.polar-remove-row-btn').hide();
+                            });
+                        }
+                    });
+                });
+
+                // Handle submit button
                 $modal.off('click.polarAddModal', '.polar-modal-submit').on('click.polarAddModal', '.polar-modal-submit', function (event) {
                     event.preventDefault();
                     const $form = $modal.find('.polar-modal-add-product-form');
@@ -431,19 +486,15 @@
                     $modal.find('.modal-close').first().trigger('click');
                 });
 
+                // Auto-add new row when last product is selected (optional enhancement)
                 if (rowTemplate) {
                     $modal.off('change.polarAddModal', '.wc-product-search').on('change.polarAddModal', '.wc-product-search', function () {
                         const $row = $(this).closest('tr');
-                        if (!$row.is(':last-child')) {
-                            return;
+                        const $selectedValue = $(this).val();
+                        // Only auto-add if a product is selected and it's the last row
+                        if ($selectedValue && $row.is(':last-child')) {
+                            // Optionally auto-add here, or leave it manual via button
                         }
-                        const index = $tbody.find('tr').length;
-                        const newRow = rowTemplate.replace(/\[0\]/g, '[' + index + ']');
-                        $tbody.append('<tr>' + newRow + '</tr>');
-                        const $newSelect = $tbody.find('tr:last .wc-product-search');
-                        self.initSelect2($newSelect);
-                        $(document.body).trigger('wc-enhanced-select-init');
-                        $tbody.find('tr:last .quantity').attr({ min: 1, step: 1 }).val(1);
                     });
                 }
             };
@@ -835,6 +886,118 @@
                     alert('An error occurred. Please try again.');
                 },
             });
+        },
+
+        initConfirmOrder: function () {
+            $(document)
+                .off('click', '.polar-confirm-order')
+                .on('click', '.polar-confirm-order', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const $button = $(this);
+                    const orderId = parseInt($button.data('order-id'), 10);
+                    const nonce = $button.data('nonce');
+                    const $feedback = $('.polar-action-feedback');
+
+                    if (!orderId || !nonce) {
+                        return;
+                    }
+
+                    $button.prop('disabled', true).addClass('is-loading');
+                    $feedback.removeClass('is-error is-success').text('Confirming order...');
+
+                    $.ajax({
+                        url: polarOrderEdit.ajaxUrl,
+                        method: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'polar_confirm_order',
+                            nonce: nonce,
+                            order_id: orderId,
+                        },
+                    })
+                        .done(function (response) {
+                            if (!response || !response.success) {
+                                const message = response && response.data && response.data.message
+                                    ? response.data.message
+                                    : 'Unable to confirm order. Please try again.';
+                                $feedback.addClass('is-error').text(message);
+                                return;
+                            }
+
+                            $feedback.addClass('is-success').text(response.data.message || 'Order confirmed successfully.');
+                            $button.replaceWith('<p class="polar-action-status"><span class="dashicons dashicons-yes-alt" style="color: #46b450;"></span> Order Confirmed</p>');
+
+                            setTimeout(function () {
+                                $feedback.removeClass('is-success').text('');
+                            }, 3000);
+                        })
+                        .fail(function () {
+                            $feedback.addClass('is-error').text('Unable to confirm order. Please try again.');
+                        })
+                        .always(function () {
+                            $button.prop('disabled', false).removeClass('is-loading');
+                        });
+                });
+        },
+
+        initCompleteOrder: function () {
+            $(document)
+                .off('click', '.polar-complete-order')
+                .on('click', '.polar-complete-order', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const $button = $(this);
+                    const orderId = parseInt($button.data('order-id'), 10);
+                    const nonce = $button.data('nonce');
+                    const $feedback = $('.polar-action-feedback');
+
+                    if (!orderId || !nonce) {
+                        return;
+                    }
+
+                    if (!confirm('Are you sure you want to mark this order as completed?')) {
+                        return;
+                    }
+
+                    $button.prop('disabled', true).addClass('is-loading');
+                    $feedback.removeClass('is-error is-success').text('Completing order...');
+
+                    $.ajax({
+                        url: polarOrderEdit.ajaxUrl,
+                        method: 'POST',
+                        dataType: 'json',
+                        data: {
+                            action: 'polar_complete_order',
+                            nonce: nonce,
+                            order_id: orderId,
+                        },
+                    })
+                        .done(function (response) {
+                            if (!response || !response.success) {
+                                const message = response && response.data && response.data.message
+                                    ? response.data.message
+                                    : 'Unable to complete order. Please try again.';
+                                $feedback.addClass('is-error').text(message);
+                                return;
+                            }
+
+                            $feedback.addClass('is-success').text(response.data.message || 'Order completed successfully.');
+                            $button.replaceWith('<p class="polar-action-status" style="margin-top: 10px;"><span class="dashicons dashicons-yes-alt" style="color: #46b450;"></span> Order Completed</p>');
+
+                            setTimeout(function () {
+                                $feedback.removeClass('is-success').text('');
+                            }, 3000);
+                        })
+                        .fail(function () {
+                            $feedback.addClass('is-error').text('Unable to complete order. Please try again.');
+                        })
+                        .always(function () {
+                            $button.prop('disabled', false).removeClass('is-loading');
+                        });
+                });
         },
     };
 

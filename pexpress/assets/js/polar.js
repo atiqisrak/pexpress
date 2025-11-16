@@ -16,6 +16,7 @@
         initSupportDashboardFilters();
         initTabs();
         initHistoryRowExpansion();
+        initProceedOrder();
     });
 
     /**
@@ -36,6 +37,28 @@
         $(document).on('heartbeat-tick', function (e, data) {
             if (data.polar_tasks) {
                 updateTaskList(data.polar_tasks);
+            }
+
+            // Update real-time status for support dashboard
+            if (data.polar_order_tracking) {
+                updateRealtimeStatus(data.polar_order_tracking);
+            }
+        });
+
+        // Request order tracking data for visible orders
+        $(document).on('heartbeat-send', function (e, data) {
+            var orderIds = [];
+            $('.polar-realtime-status').each(function () {
+                var orderId = $(this).data('order-id');
+                if (orderId) {
+                    orderIds.push(orderId);
+                }
+            });
+
+            if (orderIds.length > 0) {
+                data.polar_order_tracking = {
+                    order_ids: orderIds
+                };
             }
         });
     }
@@ -63,7 +86,7 @@
     }
 
     /**
-     * Initialize assignment forms (HR Dashboard)
+     * Initialize assignment forms (Agency Dashboard)
      */
     function initAssignmentForms() {
         $('.polar-assign-form').on('submit', function (e) {
@@ -317,6 +340,150 @@
             if ($button.length) {
                 $button.trigger('click');
             }
+        });
+    }
+
+    /**
+     * Initialize Proceed Order button
+     */
+    function initProceedOrder() {
+        $(document).on('click', '.polar-proceed-order', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var $button = $(this);
+            var orderId = parseInt($button.data('order-id'), 10);
+            var nonce = $button.data('nonce');
+            var $feedback = $button.siblings('.polar-proceed-feedback');
+
+            if (!orderId || !nonce) {
+                return;
+            }
+
+            $button.prop('disabled', true).addClass('is-loading');
+            if ($feedback.length === 0) {
+                $feedback = $('<span class="polar-proceed-feedback" role="status" aria-live="polite"></span>');
+                $button.after($feedback);
+            }
+            $feedback.removeClass('is-error is-success').text('Proceeding...');
+
+            $.ajax({
+                url: polarExpress.ajaxUrl,
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    action: 'polar_proceed_order',
+                    nonce: nonce,
+                    order_id: orderId,
+                },
+            })
+                .done(function (response) {
+                    if (!response || !response.success) {
+                        var message = response && response.data && response.data.message
+                            ? response.data.message
+                            : 'Unable to proceed order. Please try again.';
+                        $feedback.addClass('is-error').text(message);
+                        return;
+                    }
+
+                    $feedback.addClass('is-success').text(response.data.message || 'Order proceeded successfully.');
+                    $button.replaceWith('<span class="polar-action-status" style="display: inline-flex; align-items: center; color: #46b450;"><span class="dashicons dashicons-yes-alt" style="font-size: 16px; width: 16px; height: 16px;"></span> Proceeded</span>');
+
+                    setTimeout(function () {
+                        $feedback.removeClass('is-success').text('');
+                    }, 3000);
+                })
+                .fail(function () {
+                    $feedback.addClass('is-error').text('Unable to proceed order. Please try again.');
+                })
+                .always(function () {
+                    $button.prop('disabled', false).removeClass('is-loading');
+                });
+        });
+    }
+
+    /**
+     * Update real-time status cards
+     */
+    function updateRealtimeStatus(trackingData) {
+        if (!trackingData) {
+            return;
+        }
+
+        // Handle array of tracking data (multiple orders)
+        var dataArray = Array.isArray(trackingData) ? trackingData : [trackingData];
+
+        dataArray.forEach(function (data) {
+            if (!data || !data.statuses || !data.order_id) {
+                return;
+            }
+
+            var orderId = data.order_id;
+            var $statusContainer = $('.polar-realtime-status[data-order-id="' + orderId + '"]');
+
+            if (!$statusContainer.length) {
+                return;
+            }
+
+            var statuses = data.statuses;
+            var statusLabels = {
+                'agency': {
+                    'pending': 'Pending',
+                    'assigned': 'Assigned',
+                    'proceeded': 'Proceeded'
+                },
+                'delivery': {
+                    'pending': 'Pending',
+                    'meet_point_arrived': 'Meet Point Arrived',
+                    'delivery_location_arrived': 'Delivery Location Arrived',
+                    'service_in_progress': 'Service In Progress',
+                    'service_complete': 'Service Complete',
+                    'customer_served': 'Customer Served'
+                },
+                'fridge': {
+                    'pending': 'Pending',
+                    'fridge_drop': 'Fridge Dropped',
+                    'fridge_collected': 'Fridge Collected',
+                    'fridge_returned': 'Fridge Returned'
+                },
+                'distributor': {
+                    'pending': 'Pending',
+                    'distributor_prep': 'Product Provider Preparing',
+                    'out_for_delivery': 'Out for Delivery',
+                    'handoff_complete': 'Product Provider Handoff Complete'
+                }
+            };
+
+            function getStatusClass(status) {
+                if (['customer_served', 'handoff_complete', 'fridge_returned', 'proceeded'].indexOf(status) !== -1) {
+                    return 'success';
+                } else if (status === 'pending') {
+                    return 'pending';
+                } else {
+                    return 'in-progress';
+                }
+            }
+
+            function getStatusLabel(role, status) {
+                if (statusLabels[role] && statusLabels[role][status]) {
+                    return statusLabels[role][status];
+                }
+                return status.replace(/_/g, ' ').replace(/\b\w/g, function (l) { return l.toUpperCase(); });
+            }
+
+            // Update each status card
+            $.each(statuses, function (role, roleData) {
+                var $card = $statusContainer.find('.polar-status-mini-card[data-role="' + role + '"]');
+                if ($card.length && roleData.status) {
+                    var $badge = $card.find('.polar-status-badge-mini');
+                    var statusClass = getStatusClass(roleData.status);
+                    var statusLabel = getStatusLabel(role, roleData.status);
+
+                    $badge.removeClass('polar-status-success polar-status-pending polar-status-in-progress')
+                        .addClass('polar-status-' + statusClass)
+                        .text(statusLabel);
+                }
+            });
         });
     }
 

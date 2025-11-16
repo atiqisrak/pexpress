@@ -122,6 +122,8 @@ class PExpress
         // Load core files
         require_once PEXPRESS_PLUGIN_DIR . 'includes/class-pexpress-core.php';
         require_once PEXPRESS_PLUGIN_DIR . 'includes/class-pexpress-order-statuses.php';
+        require_once PEXPRESS_PLUGIN_DIR . 'includes/class-pexpress-sms-api.php';
+        require_once PEXPRESS_PLUGIN_DIR . 'includes/class-pexpress-email.php';
 
         // Load module files
         require_once PEXPRESS_PLUGIN_DIR . 'roles.php';
@@ -150,6 +152,15 @@ class PExpress
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
 
+        // Allow Polar Express users to access admin area
+        add_filter('user_has_cap', array($this, 'allow_polar_users_admin_access'), 10, 4);
+
+        // Prevent redirects for Polar Express users trying to access admin pages
+        add_action('admin_init', array($this, 'prevent_admin_redirects'), 1);
+
+        // Prevent redirect when accessing admin from frontend
+        add_action('template_redirect', array($this, 'prevent_frontend_admin_redirect'), 1);
+
         // Initialize modules
         add_action('init', array($this, 'init_modules'));
 
@@ -161,6 +172,9 @@ class PExpress
         add_action('wp_ajax_polar_update_order_status', array($this, 'ajax_update_order_status'));
         add_action('wp_ajax_polar_get_order_tracking', array($this, 'ajax_get_order_tracking'));
         add_action('wp_ajax_nopriv_polar_get_order_tracking', array($this, 'ajax_get_order_tracking'));
+        add_action('wp_ajax_polar_confirm_order', array($this, 'ajax_confirm_order'));
+        add_action('wp_ajax_polar_proceed_order', array($this, 'ajax_proceed_order'));
+        add_action('wp_ajax_polar_complete_order', array($this, 'ajax_complete_order'));
 
         // Plugin action links
         add_filter('plugin_action_links_' . PEXPRESS_PLUGIN_BASENAME, array($this, 'plugin_action_links'));
@@ -220,6 +234,135 @@ class PExpress
     }
 
     /**
+     * Allow Polar Express users to access admin area
+     * Prevents redirects to my-account page
+     *
+     * @param array   $allcaps All capabilities the user has.
+     * @param array   $caps    Required capabilities.
+     * @param array   $args    Arguments.
+     * @param WP_User $user    User object.
+     * @return array Modified capabilities.
+     */
+    public function allow_polar_users_admin_access($allcaps, $caps, $args, $user)
+    {
+        // Check if user has any Polar Express role
+        if ($user && !empty($user->roles)) {
+            $polar_roles = array('polar_hr', 'polar_delivery', 'polar_fridge', 'polar_distributor', 'polar_support');
+            $has_polar_role = false;
+            foreach ($polar_roles as $role) {
+                if (in_array($role, $user->roles, true)) {
+                    $has_polar_role = true;
+                    break;
+                }
+            }
+
+            if ($has_polar_role) {
+                // Grant read capability to allow admin access
+                $allcaps['read'] = true;
+
+                // Grant specific capabilities for support users
+                if (in_array('polar_support', $user->roles, true)) {
+                    $allcaps['edit_shop_orders'] = true;
+                    $allcaps['read_shop_order'] = true;
+                    $allcaps['publish_shop_orders'] = true;
+                    $allcaps['delete_shop_orders'] = true;
+                }
+            }
+        }
+
+        return $allcaps;
+    }
+
+    /**
+     * Prevent admin redirects for Polar Express users
+     * This allows support users to access admin pages from frontend shortcodes
+     */
+    public function prevent_admin_redirects()
+    {
+        // Only handle on admin pages
+        if (!is_admin()) {
+            return;
+        }
+
+        // Only for our custom order edit page
+        if (!isset($_GET['page']) || $_GET['page'] !== 'polar-express-order-edit') {
+            return;
+        }
+
+        $current_user = wp_get_current_user();
+        if (!$current_user || empty($current_user->ID)) {
+            return;
+        }
+
+        // Check if user has Polar Express role
+        $polar_roles = array('polar_hr', 'polar_delivery', 'polar_fridge', 'polar_distributor', 'polar_support');
+        $has_polar_role = false;
+        foreach ($polar_roles as $role) {
+            if (in_array($role, $current_user->roles, true)) {
+                $has_polar_role = true;
+                break;
+            }
+        }
+
+        // Allow access if user has Polar Express role
+        if ($has_polar_role) {
+            // Ensure user has read capability
+            if (!$current_user->has_cap('read')) {
+                $current_user->add_cap('read');
+            }
+        }
+    }
+
+    /**
+     * Prevent redirect when accessing admin URLs from frontend
+     * This prevents WordPress from redirecting Polar Express users to my-account
+     */
+    public function prevent_frontend_admin_redirect()
+    {
+        // Only check if we're accessing admin URL from frontend
+        if (is_admin()) {
+            return;
+        }
+
+        // Check if this is a request to admin.php with our page
+        if (!isset($_SERVER['REQUEST_URI'])) {
+            return;
+        }
+
+        $request_uri = sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI']));
+
+        // Check if accessing our order edit page
+        if (strpos($request_uri, 'admin.php') === false || strpos($request_uri, 'polar-express-order-edit') === false) {
+            return;
+        }
+
+        // Check if user has Polar Express role
+        $current_user = wp_get_current_user();
+        if (!$current_user || empty($current_user->ID)) {
+            return;
+        }
+
+        $polar_roles = array('polar_hr', 'polar_delivery', 'polar_fridge', 'polar_distributor', 'polar_support');
+        $has_polar_role = false;
+        foreach ($polar_roles as $role) {
+            if (in_array($role, $current_user->roles, true)) {
+                $has_polar_role = true;
+                break;
+            }
+        }
+
+        // If user has Polar Express role, allow the request to proceed
+        // Don't do anything here - just let it through
+        // The admin_init hook will handle permissions
+        if ($has_polar_role) {
+            // Ensure user has read capability
+            if (!$current_user->has_cap('read')) {
+                $current_user->add_cap('read');
+            }
+        }
+    }
+
+    /**
      * Initialize plugin modules
      */
     public function init_modules()
@@ -243,11 +386,11 @@ class PExpress
         global $post;
         if (
             !$post || (!has_shortcode($post->post_content, 'polar_hr')
-            && !has_shortcode($post->post_content, 'polar_delivery')
-            && !has_shortcode($post->post_content, 'polar_fridge')
-            && !has_shortcode($post->post_content, 'polar_distributor')
-            && !has_shortcode($post->post_content, 'polar_support')
-            && !has_shortcode($post->post_content, 'polar_order_tracking'))
+                && !has_shortcode($post->post_content, 'polar_delivery')
+                && !has_shortcode($post->post_content, 'polar_fridge')
+                && !has_shortcode($post->post_content, 'polar_distributor')
+                && !has_shortcode($post->post_content, 'polar_support')
+                && !has_shortcode($post->post_content, 'polar_order_tracking'))
         ) {
             return;
         }
@@ -570,9 +713,17 @@ class PExpress
 
         // Update per-role status
         if ($matched_role && $role_key_for_status) {
+            // Get old status before update
+            $old_status = PExpress_Core::get_role_status($order_id, $role_key_for_status);
+
             PExpress_Core::update_role_status($order_id, $role_key_for_status, $new_status);
             $display_name = $user->display_name ?: $user->user_login ?: __('User', 'pexpress');
             PExpress_Core::add_role_status_history($order_id, $role_key_for_status, $new_status, sprintf(__('Status updated by %s.', 'pexpress'), $display_name));
+
+            // Send notification if distributor status changed to "out_for_delivery"
+            if ($role_key_for_status === 'distributor' && $new_status === 'out_for_delivery' && $old_status !== 'out_for_delivery') {
+                polar_send_order_notification($order_id, 'out_for_delivery');
+            }
         }
 
         // Update WC status for backward compatibility (if mapped)
@@ -663,7 +814,7 @@ class PExpress
 
         // Check if setup is already completed
         $setup_completed = get_option('pexpress_setup_completed', false);
-        
+
         // If setup not completed, set flag to redirect to wizard
         if (!$setup_completed) {
             set_transient('pexpress_redirect_to_setup', true, 30);
@@ -691,10 +842,12 @@ class PExpress
             $wc_status = $order->get_status();
 
             // Skip if already migrated (has any per-role status)
-            if (PExpress_Core::get_role_status($order_id, 'agency') !== 'pending' ||
+            if (
+                PExpress_Core::get_role_status($order_id, 'agency') !== 'pending' ||
                 PExpress_Core::get_role_status($order_id, 'delivery') !== 'pending' ||
                 PExpress_Core::get_role_status($order_id, 'fridge') !== 'pending' ||
-                PExpress_Core::get_role_status($order_id, 'distributor') !== 'pending') {
+                PExpress_Core::get_role_status($order_id, 'distributor') !== 'pending'
+            ) {
                 continue;
             }
 
@@ -825,14 +978,14 @@ class PExpress
             ),
             'distributor' => array(
                 'pending' => __('Pending', 'pexpress'),
-                'distributor_prep' => __('Distributor Preparing', 'pexpress'),
+                'distributor_prep' => __('Product Provider Preparing', 'pexpress'),
                 'out_for_delivery' => __('Out for Delivery', 'pexpress'),
-                'handoff_complete' => __('Distributor Handoff Complete', 'pexpress'),
+                'handoff_complete' => __('Product Provider Handoff Complete', 'pexpress'),
             ),
         );
 
         // Helper function to get status label
-        $get_status_label = function($role, $status) use ($status_labels) {
+        $get_status_label = function ($role, $status) use ($status_labels) {
             if (isset($status_labels[$role][$status])) {
                 return $status_labels[$role][$status];
             }
@@ -840,10 +993,10 @@ class PExpress
         };
 
         // Helper function to get status class
-        $get_status_class = function($status) {
+        $get_status_class = function ($status) {
             $completed_statuses = array('customer_served', 'fridge_returned', 'handoff_complete', 'service_complete');
             $in_progress_statuses = array('meet_point_arrived', 'delivery_location_arrived', 'service_in_progress', 'fridge_drop', 'fridge_collected', 'distributor_prep', 'out_for_delivery', 'assigned');
-            
+
             if (in_array($status, $completed_statuses, true)) {
                 return 'completed';
             } elseif (in_array($status, $in_progress_statuses, true)) {
@@ -880,6 +1033,134 @@ class PExpress
                 ),
             ),
             'timestamp' => current_time('mysql'),
+        ));
+    }
+
+    /**
+     * AJAX handler for confirm order
+     */
+    public function ajax_confirm_order()
+    {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'polar_confirm_order')) {
+            wp_send_json_error(array('message' => __('Security check failed.', 'pexpress')));
+        }
+
+        // Check permissions
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_support', $current_user->roles) && !current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'pexpress')));
+        }
+
+        $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+        if (!$order_id) {
+            wp_send_json_error(array('message' => __('Invalid order ID.', 'pexpress')));
+        }
+
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            wp_send_json_error(array('message' => __('Order not found.', 'pexpress')));
+        }
+
+        // Update order meta to track confirmation
+        PExpress_Core::update_order_meta($order_id, '_polar_order_confirmed', current_time('mysql'));
+        PExpress_Core::update_order_meta($order_id, '_polar_order_confirmed_by', $current_user->ID);
+
+        // Send notifications
+        $results = polar_send_order_notification($order_id, 'order_confirmed');
+
+        wp_send_json_success(array(
+            'message' => __('Order confirmed successfully.', 'pexpress'),
+            'notifications' => array(
+                'sms' => !is_wp_error($results['sms']) && $results['sms'] !== false,
+                'email' => !is_wp_error($results['email']) && $results['email'] !== false,
+            ),
+        ));
+    }
+
+    /**
+     * AJAX handler for proceed order
+     */
+    public function ajax_proceed_order()
+    {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'polar_proceed_order')) {
+            wp_send_json_error(array('message' => __('Security check failed.', 'pexpress')));
+        }
+
+        // Check permissions
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_hr', $current_user->roles) && !current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'pexpress')));
+        }
+
+        $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+        if (!$order_id) {
+            wp_send_json_error(array('message' => __('Invalid order ID.', 'pexpress')));
+        }
+
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            wp_send_json_error(array('message' => __('Order not found.', 'pexpress')));
+        }
+
+        // Update agency status to "proceeded"
+        PExpress_Core::update_role_status($order_id, 'agency', 'proceeded');
+        PExpress_Core::update_order_meta($order_id, '_polar_order_proceeded', current_time('mysql'));
+        PExpress_Core::update_order_meta($order_id, '_polar_order_proceeded_by', $current_user->ID);
+
+        // Send notifications
+        $results = polar_send_order_notification($order_id, 'order_proceeded');
+
+        wp_send_json_success(array(
+            'message' => __('Order proceeded successfully.', 'pexpress'),
+            'notifications' => array(
+                'sms' => !is_wp_error($results['sms']) && $results['sms'] !== false,
+                'email' => !is_wp_error($results['email']) && $results['email'] !== false,
+            ),
+        ));
+    }
+
+    /**
+     * AJAX handler for complete order
+     */
+    public function ajax_complete_order()
+    {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'polar_complete_order')) {
+            wp_send_json_error(array('message' => __('Security check failed.', 'pexpress')));
+        }
+
+        // Check permissions
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_support', $current_user->roles) && !current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => __('You do not have permission to perform this action.', 'pexpress')));
+        }
+
+        $order_id = isset($_POST['order_id']) ? absint($_POST['order_id']) : 0;
+        if (!$order_id) {
+            wp_send_json_error(array('message' => __('Invalid order ID.', 'pexpress')));
+        }
+
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            wp_send_json_error(array('message' => __('Order not found.', 'pexpress')));
+        }
+
+        // Update order status to completed
+        $order->update_status('completed', __('Order completed by support.', 'pexpress'));
+        PExpress_Core::update_order_meta($order_id, '_polar_order_completed', current_time('mysql'));
+        PExpress_Core::update_order_meta($order_id, '_polar_order_completed_by', $current_user->ID);
+
+        // Send notifications
+        $results = polar_send_order_notification($order_id, 'order_completed');
+
+        wp_send_json_success(array(
+            'message' => __('Order completed successfully.', 'pexpress'),
+            'notifications' => array(
+                'sms' => !is_wp_error($results['sms']) && $results['sms'] !== false,
+                'email' => !is_wp_error($results['email']) && $results['email'] !== false,
+            ),
         ));
     }
 

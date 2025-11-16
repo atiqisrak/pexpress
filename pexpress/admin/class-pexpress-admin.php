@@ -45,6 +45,8 @@ class PExpress_Admin
         require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin-roles.php';
         require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin-pages.php';
         require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-admin-order-manipulation.php';
+        require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-woocommerce-capabilities.php';
+        require_once PEXPRESS_PLUGIN_DIR . 'admin/class-pexpress-role-capabilities.php';
 
         $this->modules['menus'] = new PExpress_Admin_Menus();
         $this->modules['settings'] = new PExpress_Admin_Settings();

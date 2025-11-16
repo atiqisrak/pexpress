@@ -28,7 +28,7 @@ $distributor_count = count($distributor_users);
                 <span class="polar-title-icon">👥</span>
                 <?php esc_html_e('Agency Dashboard - Task Assignment', 'pexpress'); ?>
             </h1>
-            <p class="polar-dashboard-subtitle"><?php esc_html_e('Assign orders to HR, fridge, and distributor teams', 'pexpress'); ?></p>
+            <p class="polar-dashboard-subtitle"><?php esc_html_e('Assign orders to SR, fridge, and product provider teams', 'pexpress'); ?></p>
         </div>
     </div>
 
@@ -52,7 +52,7 @@ $distributor_count = count($distributor_users);
             </div>
             <div class="stat-card-content">
                 <h3 class="stat-card-value"><?php echo esc_html($hr_count); ?></h3>
-                <p class="stat-card-label"><?php esc_html_e('HR Personnel', 'pexpress'); ?></p>
+                <p class="stat-card-label"><?php esc_html_e('SR Personnel', 'pexpress'); ?></p>
             </div>
         </div>
         <div class="polar-stat-card stat-card-success">
@@ -74,7 +74,7 @@ $distributor_count = count($distributor_users);
             </div>
             <div class="stat-card-content">
                 <h3 class="stat-card-value"><?php echo esc_html($distributor_count); ?></h3>
-                <p class="stat-card-label"><?php esc_html_e('Distributors', 'pexpress'); ?></p>
+                <p class="stat-card-label"><?php esc_html_e('Product Providers', 'pexpress'); ?></p>
             </div>
         </div>
     </div>
@@ -224,10 +224,10 @@ $distributor_count = count($distributor_users);
 
                                 <div class="assign-row">
                                     <div class="assign-field">
-                                        <label><?php esc_html_e('HR Person:', 'pexpress'); ?></label>
+                                        <label><?php esc_html_e('SR Person:', 'pexpress'); ?></label>
                                         <select name="delivery_user_id" class="polar-select">
                                             <option value=""><?php esc_html_e('Select...', 'pexpress'); ?></option>
-                                            <?php 
+                                            <?php
                                             $users_for_select = isset($hr_users) ? $hr_users : (isset($delivery_users) ? $delivery_users : array());
                                             foreach ($users_for_select as $user) : ?>
                                                 <option value="<?php echo esc_attr($user->ID); ?>">
@@ -250,7 +250,7 @@ $distributor_count = count($distributor_users);
                                     </div>
 
                                     <div class="assign-field">
-                                        <label><?php esc_html_e('Distributor:', 'pexpress'); ?></label>
+                                        <label><?php esc_html_e('Product Provider:', 'pexpress'); ?></label>
                                         <select name="distributor_user_id" class="polar-select">
                                             <option value=""><?php esc_html_e('Select...', 'pexpress'); ?></option>
                                             <?php foreach ($distributor_users as $user) : ?>
@@ -282,8 +282,8 @@ $distributor_count = count($distributor_users);
 
                                 <div class="assign-row">
                                     <div class="assign-field assign-field-full">
-                                        <label><?php esc_html_e('HR Instructions:', 'pexpress'); ?></label>
-                                        <textarea name="delivery_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for HR team...', 'pexpress'); ?>"><?php echo esc_textarea($delivery_instructions); ?></textarea>
+                                        <label><?php esc_html_e('SR Instructions:', 'pexpress'); ?></label>
+                                        <textarea name="delivery_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for SR team...', 'pexpress'); ?>"><?php echo esc_textarea($delivery_instructions); ?></textarea>
                                     </div>
                                 </div>
 
@@ -296,14 +296,36 @@ $distributor_count = count($distributor_users);
 
                                 <div class="assign-row">
                                     <div class="assign-field assign-field-full">
-                                        <label><?php esc_html_e('Distributor Instructions:', 'pexpress'); ?></label>
-                                        <textarea name="distributor_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for product distributor...', 'pexpress'); ?>"><?php echo esc_textarea($distributor_instructions); ?></textarea>
+                                        <label><?php esc_html_e('Product Provider Instructions:', 'pexpress'); ?></label>
+                                        <textarea name="distributor_instructions" class="polar-textarea" rows="2" placeholder="<?php esc_attr_e('Guidance for product provider...', 'pexpress'); ?>"><?php echo esc_textarea($distributor_instructions); ?></textarea>
                                     </div>
                                 </div>
 
-                                <button type="submit" class="polar-btn polar-btn-primary">
-                                    <?php esc_html_e('Assign Order', 'pexpress'); ?>
-                                </button>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                    <button type="submit" class="polar-btn polar-btn-primary">
+                                        <?php esc_html_e('Assign Order', 'pexpress'); ?>
+                                    </button>
+                                    <?php
+                                    $current_user = wp_get_current_user();
+                                    $is_hr = in_array('polar_hr', $current_user->roles) || current_user_can('manage_woocommerce');
+                                    $order_proceeded = PExpress_Core::get_order_meta($order_id, '_polar_order_proceeded');
+                                    $agency_status = PExpress_Core::get_role_status($order_id, 'agency');
+                                    ?>
+                                    <?php if ($is_hr && !$order_proceeded && $agency_status !== 'proceeded') : ?>
+                                        <button type="button" class="polar-btn polar-btn-success polar-proceed-order" data-order-id="<?php echo esc_attr($order_id); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('polar_proceed_order')); ?>">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M13 10V3L4 14H11V21L20 10H13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                            <?php esc_html_e('Proceed', 'pexpress'); ?>
+                                        </button>
+                                    <?php elseif ($order_proceeded || $agency_status === 'proceeded') : ?>
+                                        <span class="polar-action-status" style="display: inline-flex; align-items: center; color: #46b450;">
+                                            <span class="dashicons dashicons-yes-alt" style="font-size: 16px; width: 16px; height: 16px;"></span>
+                                            <?php esc_html_e('Proceeded', 'pexpress'); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                    <span class="polar-proceed-feedback" role="status" aria-live="polite"></span>
+                                </div>
                                 <span class="polar-assign-loading" style="display:none;"><?php esc_html_e('Assigning...', 'pexpress'); ?></span>
                             </form>
                         </div>
@@ -380,9 +402,9 @@ $distributor_count = count($distributor_users);
                     // Prepare history data for modal
                     $roles = array(
                         'agency' => __('Agency', 'pexpress'),
-                        'delivery' => __('HR', 'pexpress'),
+                        'delivery' => __('SR', 'pexpress'),
                         'fridge' => __('Fridge', 'pexpress'),
-                        'distributor' => __('Distributor', 'pexpress'),
+                        'distributor' => __('Product Provider', 'pexpress'),
                     );
                     $history_data = array();
                     foreach ($roles as $role_key => $role_label) {
@@ -412,7 +434,7 @@ $distributor_count = count($distributor_users);
                                     <span class="status-chip status-<?php echo esc_attr($agency_status); ?>"><?php echo esc_html($status_labels['agency'][$agency_status] ?? $agency_status); ?></span>
                                 </div>
                                 <div class="polar-status-item">
-                                    <span class="polar-status-label"><?php esc_html_e('HR', 'pexpress'); ?></span>
+                                    <span class="polar-status-label"><?php esc_html_e('SR', 'pexpress'); ?></span>
                                     <?php if ($delivery_id) : ?>
                                         <span class="status-chip status-<?php echo esc_attr($delivery_status); ?>"><?php echo esc_html($status_labels['delivery'][$delivery_status] ?? $delivery_status); ?></span>
                                         <small><?php echo esc_html(get_userdata($delivery_id)->display_name); ?></small>
@@ -432,7 +454,7 @@ $distributor_count = count($distributor_users);
                                     <?php endif; ?>
                                 </div>
                                 <div class="polar-status-item">
-                                    <span class="polar-status-label"><?php esc_html_e('Distributor', 'pexpress'); ?></span>
+                                    <span class="polar-status-label"><?php esc_html_e('Product Provider', 'pexpress'); ?></span>
                                     <?php if ($distributor_id) : ?>
                                         <span class="status-chip status-<?php echo esc_attr($distributor_status); ?>"><?php echo esc_html($status_labels['distributor'][$distributor_status] ?? $distributor_status); ?></span>
                                         <small><?php echo esc_html(get_userdata($distributor_id)->display_name); ?></small>

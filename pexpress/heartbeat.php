@@ -58,17 +58,41 @@ class PExpress_Heartbeat
         }
 
         // Handle order tracking requests
-        if (isset($data['polar_order_tracking']) && isset($data['polar_order_tracking']['order_id'])) {
-            $order_id = absint($data['polar_order_tracking']['order_id']);
-            if ($order_id) {
-                $order = wc_get_order($order_id);
-                if ($order) {
-                    // Check if user owns this order (unless admin)
-                    $current_user = wp_get_current_user();
-                    if (current_user_can('manage_woocommerce') || $order->get_customer_id() == $current_user->ID) {
-                        $tracking_data = self::get_order_tracking_data($order_id);
-                        if ($tracking_data) {
-                            $response['polar_order_tracking'] = $tracking_data;
+        if (isset($data['polar_order_tracking'])) {
+            if (isset($data['polar_order_tracking']['order_ids']) && is_array($data['polar_order_tracking']['order_ids'])) {
+                // Multiple orders requested
+                $order_ids = array_map('absint', $data['polar_order_tracking']['order_ids']);
+                $tracking_data_array = array();
+                $current_user = wp_get_current_user();
+
+                foreach ($order_ids as $order_id) {
+                    if ($order_id) {
+                        $order = wc_get_order($order_id);
+                        if ($order && (current_user_can('manage_woocommerce') || in_array('polar_support', $current_user->roles) || $order->get_customer_id() == $current_user->ID)) {
+                            $tracking_data = self::get_order_tracking_data($order_id);
+                            if ($tracking_data) {
+                                $tracking_data_array[] = $tracking_data;
+                            }
+                        }
+                    }
+                }
+
+                if (!empty($tracking_data_array)) {
+                    $response['polar_order_tracking'] = $tracking_data_array;
+                }
+            } elseif (isset($data['polar_order_tracking']['order_id'])) {
+                // Single order requested (backward compatibility)
+                $order_id = absint($data['polar_order_tracking']['order_id']);
+                if ($order_id) {
+                    $order = wc_get_order($order_id);
+                    if ($order) {
+                        // Check if user owns this order (unless admin)
+                        $current_user = wp_get_current_user();
+                        if (current_user_can('manage_woocommerce') || in_array('polar_support', $current_user->roles) || $order->get_customer_id() == $current_user->ID) {
+                            $tracking_data = self::get_order_tracking_data($order_id);
+                            if ($tracking_data) {
+                                $response['polar_order_tracking'] = $tracking_data;
+                            }
                         }
                     }
                 }

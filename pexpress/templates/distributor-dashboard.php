@@ -117,9 +117,9 @@ $completed_total = count($completed_tasks);
         <div class="polar-header-content">
             <h1 class="polar-dashboard-title">
                 <span class="polar-title-icon">📦</span>
-                <?php esc_html_e('Distributor Dashboard', 'pexpress'); ?>
+                <?php esc_html_e('Product Provider Dashboard', 'pexpress'); ?>
             </h1>
-            <p class="polar-dashboard-subtitle"><?php esc_html_e('Manage distribution tasks and fulfill orders', 'pexpress'); ?></p>
+            <p class="polar-dashboard-subtitle"><?php esc_html_e('Manage product distribution tasks and fulfill orders', 'pexpress'); ?></p>
         </div>
     </div>
 
@@ -352,7 +352,7 @@ $completed_total = count($completed_tasks);
                                 <?php endif; ?>
                                 <?php if (!empty($assignment_note)) : ?>
                                     <div class="order-detail-item order-detail-full">
-                                        <span class="detail-label"><?php esc_html_e('HR Notes', 'pexpress'); ?></span>
+                                        <span class="detail-label"><?php esc_html_e('SR Notes', 'pexpress'); ?></span>
                                         <p class="detail-note"><?php echo nl2br(esc_html($assignment_note)); ?></p>
                                     </div>
                                 <?php endif; ?>

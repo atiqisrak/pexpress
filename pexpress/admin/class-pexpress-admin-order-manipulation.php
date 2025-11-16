@@ -47,6 +47,9 @@ class PExpress_Admin_Order_Manipulation
 
         // Enqueue assets on custom order edit page
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
+
+        // Add body class to order edit page
+        add_filter('admin_body_class', array($this, 'add_order_edit_body_class'));
     }
 
     /**
@@ -54,7 +57,8 @@ class PExpress_Admin_Order_Manipulation
      */
     public function ajax_search_products()
     {
-        if (!current_user_can('polar_support') && !current_user_can('edit_shop_orders')) {
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_support', $current_user->roles) && !current_user_can('edit_shop_orders')) {
             wp_send_json(array());
         }
 
@@ -128,7 +132,8 @@ class PExpress_Admin_Order_Manipulation
      */
     public function allow_product_search($products)
     {
-        if (current_user_can('polar_support') || current_user_can('edit_shop_orders')) {
+        $current_user = wp_get_current_user();
+        if (in_array('polar_support', $current_user->roles) || current_user_can('edit_shop_orders')) {
             return $products;
         }
         return array();
@@ -163,7 +168,8 @@ class PExpress_Admin_Order_Manipulation
         }
 
         // Check if user has permission
-        if (!current_user_can('polar_support') && !current_user_can('edit_shop_orders')) {
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_support', $current_user->roles) && !in_array('polar_hr', $current_user->roles) && !current_user_can('edit_shop_orders')) {
             return;
         }
 
@@ -191,10 +197,31 @@ class PExpress_Admin_Order_Manipulation
             wp_enqueue_style('select2');
         }
 
+        // Ensure WooCommerce backbone modal is available
+        if (class_exists('WooCommerce')) {
+            // WooCommerce admin scripts are typically loaded on order edit pages
+            // But we need to ensure wc-backbone-modal is available
+            if (!wp_script_is('wc-backbone-modal', 'registered')) {
+                // Try to register it if WooCommerce provides it
+                if (file_exists(WC()->plugin_path() . '/assets/js/admin/backbone-modal.min.js')) {
+                    wp_register_script(
+                        'wc-backbone-modal',
+                        WC()->plugin_url() . '/assets/js/admin/backbone-modal.min.js',
+                        array('jquery', 'wp-util', 'jquery-ui-dialog'),
+                        WC_VERSION,
+                        true
+                    );
+                }
+            }
+            if (wp_script_is('wc-backbone-modal', 'registered')) {
+                wp_enqueue_script('wc-backbone-modal');
+            }
+        }
+
         wp_enqueue_script(
             'pexpress-order-edit',
             PEXPRESS_PLUGIN_URL . 'assets/js/polar-order-edit.js',
-            array('jquery', 'select2', 'wp-util', 'wc-backbone-modal'),
+            array('jquery', 'select2', 'wp-util'),
             PEXPRESS_VERSION,
             true
         );
@@ -205,9 +232,6 @@ class PExpress_Admin_Order_Manipulation
 
         // Get order ID from URL
         $order_id = isset($_GET['order_id']) ? absint($_GET['order_id']) : 0;
-        if (!$order_id) {
-            return;
-        }
 
         wp_localize_script(
             'pexpress-order-edit',
@@ -248,6 +272,12 @@ class PExpress_Admin_Order_Manipulation
                     'forwardError' => __('Unable to forward order. Please try again.', 'pexpress'),
                     'awaitingAssignment' => __('Awaiting HR Assignment', 'pexpress'),
                     'updateForwarding' => __('Update Forwarding', 'pexpress'),
+                    'revokeConfirm' => __('Are you sure you want to revoke this order from SR?', 'pexpress'),
+                    'revoking' => __('Revoking from SR...', 'pexpress'),
+                    'revokeSuccess' => __('Order revoked from SR successfully.', 'pexpress'),
+                    'revokeError' => __('Unable to revoke order. Please try again.', 'pexpress'),
+                    'notForwarded' => __('Not Yet Forwarded', 'pexpress'),
+                    'forwardToHR' => __('Forward to SR', 'pexpress'),
                 ),
             )
         );
@@ -263,7 +293,8 @@ class PExpress_Admin_Order_Manipulation
     public function render_order_edit_page()
     {
         // Check permissions
-        if (!current_user_can('polar_support') && !current_user_can('edit_shop_orders')) {
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_support', $current_user->roles) && !in_array('polar_hr', $current_user->roles) && !current_user_can('edit_shop_orders')) {
             wp_die(__('You do not have permission to access this page.', 'pexpress'));
         }
 
@@ -318,7 +349,8 @@ class PExpress_Admin_Order_Manipulation
     public function add_order_manipulation_ui($order)
     {
         // Check permissions
-        if (!current_user_can('polar_support') && !current_user_can('edit_shop_orders')) {
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_support', $current_user->roles) && !current_user_can('edit_shop_orders')) {
             return;
         }
 
@@ -1005,7 +1037,8 @@ class PExpress_Admin_Order_Manipulation
         }
 
         // Check permissions
-        if (!current_user_can('polar_support') && !current_user_can('edit_shop_orders')) {
+        $current_user = wp_get_current_user();
+        if (!in_array('polar_support', $current_user->roles) && !in_array('polar_hr', $current_user->roles) && !current_user_can('edit_shop_orders')) {
             wp_send_json_error(array('message' => __('Insufficient permissions.', 'pexpress')));
         }
 
@@ -1081,5 +1114,19 @@ class PExpress_Admin_Order_Manipulation
         }
 
         return true;
+    }
+
+    /**
+     * Add body class to order edit page for styling
+     *
+     * @param string $classes Body classes.
+     * @return string Modified body classes.
+     */
+    public function add_order_edit_body_class($classes)
+    {
+        if (isset($_GET['page']) && $_GET['page'] === 'polar-express-order-edit') {
+            $classes .= ' polar-order-edit-page';
+        }
+        return $classes;
     }
 }

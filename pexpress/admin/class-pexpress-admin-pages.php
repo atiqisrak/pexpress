@@ -28,45 +28,70 @@ class PExpress_Admin_Pages
         }
 
         $shortcodes = array(
-            'polar_hr' => array(
+            'polar_agency' => array(
                 'name' => __('Agency Dashboard', 'pexpress'),
-                'shortcode' => '[polar_hr]',
+                'shortcode' => '[polar_agency]',
+                'alias' => '[polar_hr]',
                 'description' => __('Full access to assign orders and manage operations', 'pexpress'),
-                'page_suggestion' => '/hr-dashboard',
+                'page_suggestion' => '/agency-dashboard',
+                'role' => 'polar_hr',
             ),
-            'polar_delivery' => array(
-                'name' => __('Delivery Dashboard', 'pexpress'),
-                'shortcode' => '[polar_delivery]',
+            'polar_sr' => array(
+                'name' => __('SR Dashboard', 'pexpress'),
+                'shortcode' => '[polar_sr]',
+                'alias' => '[polar_delivery]',
                 'description' => __('Can view and update delivery status for assigned orders', 'pexpress'),
-                'page_suggestion' => '/my-deliveries',
+                'page_suggestion' => '/sr-dashboard',
+                'role' => 'polar_delivery',
             ),
             'polar_fridge' => array(
                 'name' => __('Fridge Provider Dashboard', 'pexpress'),
                 'shortcode' => '[polar_fridge]',
                 'description' => __('Can view and mark fridge collection for assigned orders', 'pexpress'),
                 'page_suggestion' => '/fridge-tasks',
+                'role' => 'polar_fridge',
             ),
-            'polar_distributor' => array(
-                'name' => __('Distributor Dashboard', 'pexpress'),
-                'shortcode' => '[polar_distributor]',
+            'polar_product_provider' => array(
+                'name' => __('Product Provider Dashboard', 'pexpress'),
+                'shortcode' => '[polar_product_provider]',
+                'alias' => '[polar_distributor]',
                 'description' => __('Can view and mark fulfillment for assigned orders', 'pexpress'),
-                'page_suggestion' => '/distributor-tasks',
+                'page_suggestion' => '/product-provider-dashboard',
+                'role' => 'polar_distributor',
             ),
             'polar_support' => array(
                 'name' => __('Support Dashboard', 'pexpress'),
                 'shortcode' => '[polar_support]',
                 'description' => __('Can view all orders and provide customer support', 'pexpress'),
                 'page_suggestion' => '/support-dashboard',
+                'role' => 'polar_support',
             ),
         );
 
-        $this->render_setup_guideline_html($shortcodes);
+        $customer_shortcodes = array(
+            'polar_order_tracking' => array(
+                'name' => __('Order Tracking', 'pexpress'),
+                'shortcode' => '[polar_order_tracking]',
+                'description' => __('Display real-time order tracking status for customers. Shows progress of Agency, SR, Fridge Provider, and Product Provider.', 'pexpress'),
+                'page_suggestion' => '/order-tracking',
+                'attributes' => __('Optional: order_id="123" or use ?order_id=123 in URL', 'pexpress'),
+            ),
+            'polar_order_information' => array(
+                'name' => __('Order Information', 'pexpress'),
+                'shortcode' => '[polar_order_information]',
+                'description' => __('Display complete order details including customer info, addresses, meeting information, and order items.', 'pexpress'),
+                'page_suggestion' => '/order-information',
+                'attributes' => __('Optional: order_id="123" or use ?order_id=123 in URL', 'pexpress'),
+            ),
+        );
+
+        $this->render_setup_guideline_html($shortcodes, $customer_shortcodes);
     }
 
     /**
      * Render Setup Guideline HTML
      */
-    private function render_setup_guideline_html($shortcodes)
+    private function render_setup_guideline_html($shortcodes, $customer_shortcodes = array())
     {
 ?>
         <div class="wrap polar-setup-guideline">
@@ -100,10 +125,10 @@ class PExpress_Admin_Pages
                     <div class="polar-info-box">
                         <strong><?php esc_html_e('Available Roles:', 'pexpress'); ?></strong>
                         <ul style="margin-top: 10px;">
-                            <li><strong><?php esc_html_e('Polar HR:', 'pexpress'); ?></strong> <?php esc_html_e('Full access to assign orders and manage operations', 'pexpress'); ?></li>
-                            <li><strong><?php esc_html_e('Polar Delivery:', 'pexpress'); ?></strong> <?php esc_html_e('Can view and update delivery status for assigned orders', 'pexpress'); ?></li>
+                            <li><strong><?php esc_html_e('Polar Agency (HR):', 'pexpress'); ?></strong> <?php esc_html_e('Full access to assign orders and manage operations', 'pexpress'); ?></li>
+                            <li><strong><?php esc_html_e('Polar SR (Delivery):', 'pexpress'); ?></strong> <?php esc_html_e('Can view and update delivery status for assigned orders', 'pexpress'); ?></li>
                             <li><strong><?php esc_html_e('Polar Fridge Provider:', 'pexpress'); ?></strong> <?php esc_html_e('Can view and mark fridge collection for assigned orders', 'pexpress'); ?></li>
-                            <li><strong><?php esc_html_e('Polar Distributor:', 'pexpress'); ?></strong> <?php esc_html_e('Can view and mark fulfillment for assigned orders', 'pexpress'); ?></li>
+                            <li><strong><?php esc_html_e('Polar Product Provider (Distributor):', 'pexpress'); ?></strong> <?php esc_html_e('Can view and mark fulfillment for assigned orders', 'pexpress'); ?></li>
                             <li><strong><?php esc_html_e('Polar Support:', 'pexpress'); ?></strong> <?php esc_html_e('Can view all orders and provide customer support', 'pexpress'); ?></li>
                         </ul>
                     </div>
@@ -130,13 +155,21 @@ class PExpress_Admin_Pages
                     </div>
                 </div>
 
-                <h3 style="margin-top: 30px;"><?php esc_html_e('Available Shortcodes', 'pexpress'); ?></h3>
+                <h3 style="margin-top: 30px;"><?php esc_html_e('Role Dashboard Shortcodes', 'pexpress'); ?></h3>
+                <p style="color: #646970; margin-bottom: 20px;">
+                    <?php esc_html_e('These shortcodes are for role-based dashboards. Users must be logged in and have the appropriate role to access their dashboard.', 'pexpress'); ?>
+                </p>
                 <?php foreach ($shortcodes as $key => $shortcode) : ?>
                     <div class="polar-shortcode-card">
                         <h4><?php echo esc_html($shortcode['name']); ?></h4>
                         <p><?php echo esc_html($shortcode['description']); ?></p>
                         <div class="polar-shortcode-code">
                             <?php echo esc_html($shortcode['shortcode']); ?>
+                            <?php if (!empty($shortcode['alias'])) : ?>
+                                <span style="color: #646970; font-size: 12px; margin-left: 10px;">
+                                    <?php esc_html_e('(also:', 'pexpress'); ?> <?php echo esc_html($shortcode['alias']); ?>)
+                                </span>
+                            <?php endif; ?>
                         </div>
                         <button class="polar-copy-btn" data-shortcode="<?php echo esc_attr($shortcode['shortcode']); ?>">
                             <?php esc_html_e('Copy Shortcode', 'pexpress'); ?>
@@ -144,9 +177,41 @@ class PExpress_Admin_Pages
                         <p style="margin-top: 10px; color: #646970; font-size: 13px;">
                             <strong><?php esc_html_e('Suggested Page Slug:', 'pexpress'); ?></strong>
                             <code><?php echo esc_html($shortcode['page_suggestion']); ?></code>
+                            <?php if (!empty($shortcode['role'])) : ?>
+                                <br><strong><?php esc_html_e('Required Role:', 'pexpress'); ?></strong>
+                                <code><?php echo esc_html($shortcode['role']); ?></code>
+                            <?php endif; ?>
                         </p>
                     </div>
                 <?php endforeach; ?>
+
+                <?php if (!empty($customer_shortcodes)) : ?>
+                    <h3 style="margin-top: 40px;"><?php esc_html_e('Customer-Facing Shortcodes', 'pexpress'); ?></h3>
+                    <p style="color: #646970; margin-bottom: 20px;">
+                        <?php esc_html_e('These shortcodes are for customer pages. Users must be logged in to view their own orders. Order ID can be provided via shortcode attribute or URL parameter.', 'pexpress'); ?>
+                    </p>
+                    <?php foreach ($customer_shortcodes as $key => $shortcode) : ?>
+                        <div class="polar-shortcode-card" style="border-left-color: #2271b1;">
+                            <h4><?php echo esc_html($shortcode['name']); ?></h4>
+                            <p><?php echo esc_html($shortcode['description']); ?></p>
+                            <div class="polar-shortcode-code">
+                                <?php echo esc_html($shortcode['shortcode']); ?>
+                                <?php if (!empty($shortcode['attributes'])) : ?>
+                                    <br><span style="color: #646970; font-size: 11px; display: block; margin-top: 5px;">
+                                        <?php echo esc_html($shortcode['attributes']); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <button class="polar-copy-btn" data-shortcode="<?php echo esc_attr($shortcode['shortcode']); ?>">
+                                <?php esc_html_e('Copy Shortcode', 'pexpress'); ?>
+                            </button>
+                            <p style="margin-top: 10px; color: #646970; font-size: 13px;">
+                                <strong><?php esc_html_e('Suggested Page Slug:', 'pexpress'); ?></strong>
+                                <code><?php echo esc_html($shortcode['page_suggestion']); ?></code>
+                            </p>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
 
             <div class="polar-setup-section">
@@ -177,11 +242,12 @@ class PExpress_Admin_Pages
                 <div class="polar-setup-step">
                     <h3><?php esc_html_e('Order Processing Flow', 'pexpress'); ?></h3>
                     <ol>
-                        <li><strong><?php esc_html_e('Order Received:', 'pexpress'); ?></strong> <?php esc_html_e('New orders appear in HR Dashboard for assignment', 'pexpress'); ?></li>
-                        <li><strong><?php esc_html_e('HR Assignment:', 'pexpress'); ?></strong> <?php esc_html_e('HR assigns orders to Delivery, Fridge Provider, and Distributor', 'pexpress'); ?></li>
-                        <li><strong><?php esc_html_e('Distributor Fulfills:', 'pexpress'); ?></strong> <?php esc_html_e('Distributor marks orders as fulfilled', 'pexpress'); ?></li>
+                        <li><strong><?php esc_html_e('Order Received:', 'pexpress'); ?></strong> <?php esc_html_e('New orders appear in Agency Dashboard for assignment', 'pexpress'); ?></li>
+                        <li><strong><?php esc_html_e('Agency Assignment:', 'pexpress'); ?></strong> <?php esc_html_e('Agency assigns orders to SR (Sales Representative), Fridge Provider, and Product Provider', 'pexpress'); ?></li>
+                        <li><strong><?php esc_html_e('Product Provider Fulfills:', 'pexpress'); ?></strong> <?php esc_html_e('Product Provider marks orders as fulfilled', 'pexpress'); ?></li>
                         <li><strong><?php esc_html_e('Fridge Collection:', 'pexpress'); ?></strong> <?php esc_html_e('Fridge Provider collects and later returns the fridge', 'pexpress'); ?></li>
-                        <li><strong><?php esc_html_e('Delivery:', 'pexpress'); ?></strong> <?php esc_html_e('Delivery person marks orders as out for delivery and then delivered', 'pexpress'); ?></li>
+                        <li><strong><?php esc_html_e('SR Delivery:', 'pexpress'); ?></strong> <?php esc_html_e('SR marks orders as out for delivery and then delivered', 'pexpress'); ?></li>
+                        <li><strong><?php esc_html_e('Customer Tracking:', 'pexpress'); ?></strong> <?php esc_html_e('Customers can track their orders in real-time using the Order Tracking page', 'pexpress'); ?></li>
                         <li><strong><?php esc_html_e('Support:', 'pexpress'); ?></strong> <?php esc_html_e('Support team can view all orders to assist customers', 'pexpress'); ?></li>
                     </ol>
                 </div>
@@ -192,11 +258,13 @@ class PExpress_Admin_Pages
                 <div class="polar-setup-step">
                     <ul>
                         <li><?php esc_html_e('Create separate pages for each dashboard type for better organization', 'pexpress'); ?></li>
-                        <li><?php esc_html_e('Use descriptive page slugs (e.g., /my-deliveries, /fridge-tasks)', 'pexpress'); ?></li>
+                        <li><?php esc_html_e('Use descriptive page slugs (e.g., /agency-dashboard, /sr-dashboard, /order-tracking)', 'pexpress'); ?></li>
+                        <li><?php esc_html_e('Use the new shortcode names: [polar_agency], [polar_sr], [polar_product_provider] for clarity', 'pexpress'); ?></li>
+                        <li><?php esc_html_e('Create customer pages with [polar_order_tracking] and [polar_order_information] shortcodes', 'pexpress'); ?></li>
                         <li><?php esc_html_e('Ensure all team members have WordPress user accounts before assigning roles', 'pexpress'); ?></li>
                         <li><?php esc_html_e('Test the workflow with a test order before going live', 'pexpress'); ?></li>
                         <li><?php esc_html_e('Keep SMS credentials secure and never share them publicly', 'pexpress'); ?></li>
-                        <li><?php esc_html_e('Regularly check the HR Dashboard for pending assignments', 'pexpress'); ?></li>
+                        <li><?php esc_html_e('Regularly check the Agency Dashboard for pending assignments', 'pexpress'); ?></li>
                     </ul>
                 </div>
             </div>

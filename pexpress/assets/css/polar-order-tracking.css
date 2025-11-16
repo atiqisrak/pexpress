@@ -104,11 +104,26 @@
 }
 
 .polar-assigned-user {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     padding: 10px;
     background: #f6f7f7;
     border-radius: 4px;
     font-size: 14px;
+}
+
+.polar-status-timestamp {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #646970;
+    display: flex;
+    align-items: center;
+}
+
+.polar-status-timestamp svg {
+    opacity: 0.7;
 }
 
 .polar-user-label {

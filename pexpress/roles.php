@@ -18,17 +18,28 @@ if (!defined('ABSPATH')) {
 function polar_create_roles()
 {
     // 1. Customer Support
-    add_role(
-        'polar_support',
-        'Polar Support',
-        array(
-            'read'                   => true,
-            'edit_shop_orders'      => true,
-            'read_shop_order'        => true,
-            'publish_shop_orders'   => true,
-            'delete_shop_orders'     => true,
-        )
-    );
+    $support_role = get_role('polar_support');
+    if ($support_role) {
+        // Update existing role with new capabilities
+        $support_role->add_cap('read');
+        $support_role->add_cap('edit_shop_orders');
+        $support_role->add_cap('read_shop_order');
+        $support_role->add_cap('publish_shop_orders');
+        $support_role->add_cap('delete_shop_orders');
+    } else {
+        // Create new role
+        add_role(
+            'polar_support',
+            'Polar Support',
+            array(
+                'read'                   => true,
+                'edit_shop_orders'      => true,
+                'read_shop_order'        => true,
+                'publish_shop_orders'   => true,
+                'delete_shop_orders'     => true,
+            )
+        );
+    }
 
     // 2. Agency (formerly HR - the boss)
     add_role(

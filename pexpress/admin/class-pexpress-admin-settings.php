@@ -34,55 +34,198 @@ class PExpress_Admin_Settings
         );
 
         add_settings_field(
-            'pexpress_enable_sms',
-            __('Enable SMS Notifications', 'pexpress'),
+            'pexpress_enable_plugin',
+            __('Enable Plugin', 'pexpress'),
+            array($this, 'render_enable_plugin_field'),
+            'polar-express-settings',
+            'pexpress_sms_section'
+        );
+
+        add_settings_field(
+            'pexpress_api_version',
+            __('Select SSL Care Platform', 'pexpress'),
+            array($this, 'render_api_version_field'),
+            'polar-express-settings',
+            'pexpress_sms_section'
+        );
+
+        add_settings_field(
+            'pexpress_api_hash_token',
+            __('API Hash Token', 'pexpress'),
+            array($this, 'render_api_hash_token_field'),
+            'polar-express-settings',
+            'pexpress_sms_section'
+        );
+
+        add_settings_field(
+            'pexpress_api_url',
+            __('API URL', 'pexpress'),
+            array($this, 'render_api_url_field'),
+            'polar-express-settings',
+            'pexpress_sms_section'
+        );
+
+        add_settings_field(
+            'pexpress_api_username',
+            __('API User', 'pexpress'),
+            array($this, 'render_api_username_field'),
+            'polar-express-settings',
+            'pexpress_sms_section'
+        );
+
+        add_settings_field(
+            'pexpress_api_password',
+            __('API Password', 'pexpress'),
+            array($this, 'render_api_password_field'),
+            'polar-express-settings',
+            'pexpress_sms_section'
+        );
+
+        add_settings_field(
+            'pexpress_api_sid',
+            __('SID/Stakeholder', 'pexpress'),
+            array($this, 'render_api_sid_field'),
+            'polar-express-settings',
+            'pexpress_sms_section'
+        );
+
+        add_settings_field(
+            'pexpress_enable_unicode',
+            __('Unicode/Bangla SMS', 'pexpress'),
+            array($this, 'render_enable_unicode_field'),
+            'polar-express-settings',
+            'pexpress_sms_section'
+        );
+
+        // Email Settings Section
+        add_settings_section(
+            'pexpress_email_section',
+            __('Email Configuration', 'pexpress'),
+            array($this, 'email_section_callback'),
+            'polar-express-settings'
+        );
+
+        add_settings_field(
+            'pexpress_enable_email',
+            __('Enable Email Notifications', 'pexpress'),
             array($this, 'render_checkbox_field'),
             'polar-express-settings',
-            'pexpress_sms_section',
+            'pexpress_email_section',
             array(
-                'label_for' => 'pexpress_enable_sms',
-                'option_key' => 'enable_sms',
-                'description' => __('Enable SMS notifications for order assignments and status updates', 'pexpress')
+                'label_for' => 'pexpress_enable_email',
+                'option_key' => 'email_config.enable_email',
+                'description' => __('Enable email notifications for order status updates', 'pexpress')
             )
         );
 
         add_settings_field(
-            'pexpress_sms_user',
-            __('SMS API Username', 'pexpress'),
+            'pexpress_email_from_name',
+            __('From Name', 'pexpress'),
             array($this, 'render_text_field'),
             'polar-express-settings',
-            'pexpress_sms_section',
+            'pexpress_email_section',
             array(
-                'label_for' => 'pexpress_sms_user',
-                'option_key' => 'sms_user',
-                'description' => __('Your SSLCommerz SMS API username', 'pexpress')
+                'label_for' => 'pexpress_email_from_name',
+                'option_key' => 'email_config.from_name',
+                'description' => __('Name to use as sender', 'pexpress')
             )
         );
 
         add_settings_field(
-            'pexpress_sms_pass',
-            __('SMS API Password', 'pexpress'),
-            array($this, 'render_password_field'),
-            'polar-express-settings',
-            'pexpress_sms_section',
-            array(
-                'label_for' => 'pexpress_sms_pass',
-                'option_key' => 'sms_pass',
-                'description' => __('Your SSLCommerz SMS API password', 'pexpress')
-            )
-        );
-
-        add_settings_field(
-            'pexpress_sms_sid',
-            __('SMS SID', 'pexpress'),
+            'pexpress_email_from_email',
+            __('From Email', 'pexpress'),
             array($this, 'render_text_field'),
             'polar-express-settings',
-            'pexpress_sms_section',
+            'pexpress_email_section',
             array(
-                'label_for' => 'pexpress_sms_sid',
-                'option_key' => 'sms_sid',
-                'description' => __('SMS Sender ID (e.g., POLARICE)', 'pexpress')
+                'label_for' => 'pexpress_email_from_email',
+                'option_key' => 'email_config.from_email',
+                'description' => __('Email address to use as sender', 'pexpress')
             )
+        );
+
+        // Email Templates Section
+        add_settings_section(
+            'pexpress_email_templates_section',
+            __('Email Template Configuration', 'pexpress'),
+            array($this, 'email_templates_section_callback'),
+            'polar-express-settings'
+        );
+
+        // Order Confirmed Email Template
+        add_settings_field(
+            'pexpress_email_order_confirmed_enable',
+            __('Order Confirmed Email Alert', 'pexpress'),
+            array($this, 'render_email_template_enable_field'),
+            'polar-express-settings',
+            'pexpress_email_templates_section',
+            array('template_key' => 'order_confirmed')
+        );
+
+        add_settings_field(
+            'pexpress_email_order_confirmed_template',
+            __('Order Confirmed Email Template', 'pexpress'),
+            array($this, 'render_email_template_field'),
+            'polar-express-settings',
+            'pexpress_email_templates_section',
+            array('template_key' => 'order_confirmed')
+        );
+
+        // Order Proceeded Email Template
+        add_settings_field(
+            'pexpress_email_order_proceeded_enable',
+            __('Order Proceeded Email Alert', 'pexpress'),
+            array($this, 'render_email_template_enable_field'),
+            'polar-express-settings',
+            'pexpress_email_templates_section',
+            array('template_key' => 'order_proceeded')
+        );
+
+        add_settings_field(
+            'pexpress_email_order_proceeded_template',
+            __('Order Proceeded Email Template', 'pexpress'),
+            array($this, 'render_email_template_field'),
+            'polar-express-settings',
+            'pexpress_email_templates_section',
+            array('template_key' => 'order_proceeded')
+        );
+
+        // Out for Delivery Email Template
+        add_settings_field(
+            'pexpress_email_out_for_delivery_enable',
+            __('Out for Delivery Email Alert', 'pexpress'),
+            array($this, 'render_email_template_enable_field'),
+            'polar-express-settings',
+            'pexpress_email_templates_section',
+            array('template_key' => 'out_for_delivery')
+        );
+
+        add_settings_field(
+            'pexpress_email_out_for_delivery_template',
+            __('Out for Delivery Email Template', 'pexpress'),
+            array($this, 'render_email_template_field'),
+            'polar-express-settings',
+            'pexpress_email_templates_section',
+            array('template_key' => 'out_for_delivery')
+        );
+
+        // Order Completed Email Template
+        add_settings_field(
+            'pexpress_email_order_completed_enable',
+            __('Order Completed Email Alert', 'pexpress'),
+            array($this, 'render_email_template_enable_field'),
+            'polar-express-settings',
+            'pexpress_email_templates_section',
+            array('template_key' => 'order_completed')
+        );
+
+        add_settings_field(
+            'pexpress_email_order_completed_template',
+            __('Order Completed Email Template', 'pexpress'),
+            array($this, 'render_email_template_field'),
+            'polar-express-settings',
+            'pexpress_email_templates_section',
+            array('template_key' => 'order_completed')
         );
 
         // General Settings Section
@@ -108,6 +251,90 @@ class PExpress_Admin_Settings
                 'max' => 60
             )
         );
+
+        // SMS Templates Section
+        add_settings_section(
+            'pexpress_sms_templates_section',
+            __('SMS Template Configuration', 'pexpress'),
+            array($this, 'sms_templates_section_callback'),
+            'polar-express-settings'
+        );
+
+        // Order Confirmed Template
+        add_settings_field(
+            'pexpress_order_confirmed_enable',
+            __('Order Confirmed Alert', 'pexpress'),
+            array($this, 'render_template_enable_field'),
+            'polar-express-settings',
+            'pexpress_sms_templates_section',
+            array('template_key' => 'order_confirmed')
+        );
+
+        add_settings_field(
+            'pexpress_order_confirmed_template',
+            __('Order Confirmed Template', 'pexpress'),
+            array($this, 'render_template_field'),
+            'polar-express-settings',
+            'pexpress_sms_templates_section',
+            array('template_key' => 'order_confirmed')
+        );
+
+        // Order Proceeded Template
+        add_settings_field(
+            'pexpress_order_proceeded_enable',
+            __('Order Proceeded Alert', 'pexpress'),
+            array($this, 'render_template_enable_field'),
+            'polar-express-settings',
+            'pexpress_sms_templates_section',
+            array('template_key' => 'order_proceeded')
+        );
+
+        add_settings_field(
+            'pexpress_order_proceeded_template',
+            __('Order Proceeded Template', 'pexpress'),
+            array($this, 'render_template_field'),
+            'polar-express-settings',
+            'pexpress_sms_templates_section',
+            array('template_key' => 'order_proceeded')
+        );
+
+        // Out for Delivery Template
+        add_settings_field(
+            'pexpress_out_for_delivery_enable',
+            __('Out for Delivery Alert', 'pexpress'),
+            array($this, 'render_template_enable_field'),
+            'polar-express-settings',
+            'pexpress_sms_templates_section',
+            array('template_key' => 'out_for_delivery')
+        );
+
+        add_settings_field(
+            'pexpress_out_for_delivery_template',
+            __('Out for Delivery Template', 'pexpress'),
+            array($this, 'render_template_field'),
+            'polar-express-settings',
+            'pexpress_sms_templates_section',
+            array('template_key' => 'out_for_delivery')
+        );
+
+        // Order Completed Template
+        add_settings_field(
+            'pexpress_order_completed_enable',
+            __('Order Completed Alert', 'pexpress'),
+            array($this, 'render_template_enable_field'),
+            'polar-express-settings',
+            'pexpress_sms_templates_section',
+            array('template_key' => 'order_completed')
+        );
+
+        add_settings_field(
+            'pexpress_order_completed_template',
+            __('Order Completed Template', 'pexpress'),
+            array($this, 'render_template_field'),
+            'polar-express-settings',
+            'pexpress_sms_templates_section',
+            array('template_key' => 'order_completed')
+        );
     }
 
     /**
@@ -115,7 +342,237 @@ class PExpress_Admin_Settings
      */
     public function sms_section_callback()
     {
-        echo '<p>' . esc_html__('Configure SMS notifications for order assignments and status updates.', 'pexpress') . '</p>';
+        echo '<hr>';
+    }
+
+    /**
+     * Render enable plugin field
+     */
+    public function render_enable_plugin_field()
+    {
+        $options = get_option('pexpress_options', array());
+        $enable_plugin = isset($options['sms_config']['enable_plugin']) ? $options['sms_config']['enable_plugin'] : '';
+
+        $html = '<input type="checkbox" id="pexpress_enable_plugin" name="pexpress_options[sms_config][enable_plugin]" value="1"' . checked(1, $enable_plugin, false) . '/>';
+        $html .= '<label for="pexpress_enable_plugin">' . esc_html__('Check to enable the plugin.', 'pexpress') . '</label>';
+
+        echo $html;
+    }
+
+    /**
+     * Render API version field
+     */
+    public function render_api_version_field()
+    {
+        $options = get_option('pexpress_options', array());
+        $api_version = isset($options['sms_config']['api_version']) ? $options['sms_config']['api_version'] : 'isms';
+
+        $html = '<select id="pexpress_api_version" name="pexpress_options[sms_config][api_version]">';
+        $html .= '<option value="isms"' . selected('isms', $api_version, false) . '>ISMS</option>';
+        $html .= '<option value="ismsplus"' . selected('ismsplus', $api_version, false) . '>ISMS Plus</option>';
+        $html .= '</select>';
+        $html .= '<p class="description">' . esc_html__('Select SSL Care Platform', 'pexpress') . '</p>';
+
+        echo $html;
+    }
+
+    /**
+     * Render API hash token field
+     */
+    public function render_api_hash_token_field()
+    {
+        $options = get_option('pexpress_options', array());
+        $api_hash_token = isset($options['sms_config']['api_hash_token']) ? esc_attr($options['sms_config']['api_hash_token']) : '';
+
+        $html = '<input type="text" id="pexpress_api_hash_token" name="pexpress_options[sms_config][api_hash_token]" value="' . $api_hash_token . '" size="65" placeholder="' . esc_attr__('Only use for ISMS Plus Platform', 'pexpress') . '" />';
+        $html .= '<p class="description">' . esc_html__('Only use for ISMS Plus (Get it from Panel Profile).', 'pexpress') . '</p>';
+
+        echo $html;
+    }
+
+    /**
+     * Render API URL field
+     */
+    public function render_api_url_field()
+    {
+        $options = get_option('pexpress_options', array());
+        $allowed_api_urls = array(
+            'http://sms.sslwireless.com/pushapi/dynamic/server.php',
+            'https://smsplus.sslwireless.com/api/v3/send-sms'
+        );
+
+        $api_url = isset($options['sms_config']['api_url']) ? esc_url($options['sms_config']['api_url']) : '';
+
+        // If the stored URL is not in the allowed list, set default
+        if (!in_array($api_url, $allowed_api_urls) && !empty($api_url)) {
+            $api_url = 'https://smsplus.sslwireless.com/api/v3/send-sms';
+        } elseif (empty($api_url)) {
+            $api_url = 'https://smsplus.sslwireless.com/api/v3/send-sms';
+        }
+
+        $html = '<input type="text" id="pexpress_api_url" name="pexpress_options[sms_config][api_url]" value="' . esc_attr($api_url) . '" size="65" />';
+        $html .= '<p class="description">' . esc_html__('Must input this field.', 'pexpress') . '</p>';
+
+        echo $html;
+    }
+
+    /**
+     * Render API username field
+     */
+    public function render_api_username_field()
+    {
+        $options = get_option('pexpress_options', array());
+        $api_username = isset($options['sms_config']['api_username']) ? esc_attr($options['sms_config']['api_username']) : '';
+
+        $html = '<input type="text" id="pexpress_api_username" name="pexpress_options[sms_config][api_username]" value="' . $api_username . '" size="45" placeholder="' . esc_attr__('Only use for ISMS Platform', 'pexpress') . '" />';
+        $html .= '<p class="description">' . esc_html__('API User (Only for ISMS Platform).', 'pexpress') . '</p>';
+
+        echo $html;
+    }
+
+    /**
+     * Render API password field
+     */
+    public function render_api_password_field()
+    {
+        $options = get_option('pexpress_options', array());
+        $api_password = isset($options['sms_config']['api_password']) ? esc_attr($options['sms_config']['api_password']) : '';
+
+        $html = '<input type="password" id="pexpress_api_password" name="pexpress_options[sms_config][api_password]" value="' . $api_password . '" size="45" placeholder="' . esc_attr__('Only use for ISMS Platform', 'pexpress') . '" />';
+        $html .= '<p class="description">' . esc_html__('API Password (Only for ISMS Platform).', 'pexpress') . '</p>';
+
+        echo $html;
+    }
+
+    /**
+     * Render API SID field
+     */
+    public function render_api_sid_field()
+    {
+        $options = get_option('pexpress_options', array());
+        $api_sid = isset($options['sms_config']['api_sid']) ? esc_attr($options['sms_config']['api_sid']) : 'POLAROTP';
+
+        $html = '<input type="text" id="pexpress_api_sid" name="pexpress_options[sms_config][api_sid]" value="' . $api_sid . '" size="45" placeholder="' . esc_attr__('Only use for ISMS & ISMS Plus Platform', 'pexpress') . '" />';
+        $html .= '<p class="description">' . esc_html__('SID/Stakeholder (Provided from Ethertech WOOTP).', 'pexpress') . '</p>';
+
+        echo $html;
+    }
+
+    /**
+     * Render enable unicode field
+     */
+    public function render_enable_unicode_field()
+    {
+        $options = get_option('pexpress_options', array());
+        $enable_unicode = isset($options['sms_config']['enable_unicode']) ? $options['sms_config']['enable_unicode'] : '';
+
+        $html = '<input type="checkbox" id="pexpress_enable_unicode" name="pexpress_options[sms_config][enable_unicode]" value="1"' . checked(1, $enable_unicode, false) . '/>';
+        $html .= '<label for="pexpress_enable_unicode">' . esc_html__('Check to enable Unicode/Bangla SMS (Only for ISMS Platform).', 'pexpress') . '</label>';
+
+        echo $html;
+    }
+
+    /**
+     * SMS templates section callback
+     */
+    public function sms_templates_section_callback()
+    {
+        echo '<p>' . esc_html__('Configure SMS templates for order notifications. Use placeholders: {{order_id}}, {{customer_name}}, {{order_total}}, {{order_date}}', 'pexpress') . '</p>';
+    }
+
+    /**
+     * Render template enable field
+     */
+    public function render_template_enable_field($args)
+    {
+        $options = get_option('pexpress_options', array());
+        $template_key = $args['template_key'];
+        $enabled = isset($options['sms_templates'][$template_key]['enabled']) ? $options['sms_templates'][$template_key]['enabled'] : '';
+
+        $html = '<input type="checkbox" id="pexpress_' . esc_attr($template_key) . '_enable" name="pexpress_options[sms_templates][' . esc_attr($template_key) . '][enabled]" value="1"' . checked(1, $enabled, false) . '/>';
+        $html .= '<label for="pexpress_' . esc_attr($template_key) . '_enable">' . esc_html__('Enable this notification', 'pexpress') . '</label>';
+
+        echo $html;
+    }
+
+    /**
+     * Render template field
+     */
+    public function render_template_field($args)
+    {
+        $options = get_option('pexpress_options', array());
+        $template_key = $args['template_key'];
+
+        // Default templates
+        $default_templates = array(
+            'order_confirmed' => __('Your order #{{order_id}} has been confirmed. Thank you for your order!', 'pexpress'),
+            'order_proceeded' => __('Your order #{{order_id}} is now being processed. We will update you soon.', 'pexpress'),
+            'out_for_delivery' => __('Your order #{{order_id}} is out for delivery. You will receive it shortly.', 'pexpress'),
+            'order_completed' => __('Your order #{{order_id}} has been completed. Thank you for choosing us!', 'pexpress'),
+        );
+
+        $template = isset($options['sms_templates'][$template_key]['template']) ? $options['sms_templates'][$template_key]['template'] : (isset($default_templates[$template_key]) ? $default_templates[$template_key] : '');
+
+        $html = '<textarea id="pexpress_' . esc_attr($template_key) . '_template" name="pexpress_options[sms_templates][' . esc_attr($template_key) . '][template]" rows="3" cols="80" class="large-text">' . esc_textarea($template) . '</textarea>';
+        $html .= '<p class="description">' . esc_html__('Available placeholders: {{order_id}}, {{customer_name}}, {{order_total}}, {{order_date}}', 'pexpress') . '</p>';
+
+        echo $html;
+    }
+
+    /**
+     * Email section callback
+     */
+    public function email_section_callback()
+    {
+        echo '<hr>';
+        echo '<p>' . esc_html__('Configure email notification settings.', 'pexpress') . '</p>';
+    }
+
+    /**
+     * Email templates section callback
+     */
+    public function email_templates_section_callback()
+    {
+        echo '<p>' . esc_html__('Configure email templates for order notifications. Use placeholders: {{order_id}}, {{customer_name}}, {{order_total}}, {{order_date}}', 'pexpress') . '</p>';
+    }
+
+    /**
+     * Render email template enable field
+     */
+    public function render_email_template_enable_field($args)
+    {
+        $options = get_option('pexpress_options', array());
+        $template_key = $args['template_key'];
+        $enabled = isset($options['email_templates'][$template_key]['enabled']) ? $options['email_templates'][$template_key]['enabled'] : '';
+
+        $html = '<input type="checkbox" id="pexpress_email_' . esc_attr($template_key) . '_enable" name="pexpress_options[email_templates][' . esc_attr($template_key) . '][enabled]" value="1"' . checked(1, $enabled, false) . '/>';
+        $html .= '<label for="pexpress_email_' . esc_attr($template_key) . '_enable">' . esc_html__('Enable this notification', 'pexpress') . '</label>';
+
+        echo $html;
+    }
+
+    /**
+     * Render email template field
+     */
+    public function render_email_template_field($args)
+    {
+        $options = get_option('pexpress_options', array());
+        $template_key = $args['template_key'];
+
+        // Default templates
+        $default_templates = array(
+            'order_confirmed' => __('Your order #{{order_id}} has been confirmed. Thank you for your order!', 'pexpress'),
+            'order_proceeded' => __('Your order #{{order_id}} is now being processed. We will update you soon.', 'pexpress'),
+            'out_for_delivery' => __('Your order #{{order_id}} is out for delivery. You will receive it shortly.', 'pexpress'),
+            'order_completed' => __('Your order #{{order_id}} has been completed. Thank you for choosing us!', 'pexpress'),
+        );
+
+        $template = isset($options['email_templates'][$template_key]['template']) ? $options['email_templates'][$template_key]['template'] : (isset($default_templates[$template_key]) ? $default_templates[$template_key] : '');
+
+        $html = '<textarea id="pexpress_email_' . esc_attr($template_key) . '_template" name="pexpress_options[email_templates][' . esc_attr($template_key) . '][template]" rows="3" cols="80" class="large-text">' . esc_textarea($template) . '</textarea>';
+        $html .= '<p class="description">' . esc_html__('Available placeholders: {{order_id}}, {{customer_name}}, {{order_total}}, {{order_date}}', 'pexpress') . '</p>';
+
+        echo $html;
     }
 
     /**
@@ -132,8 +589,22 @@ class PExpress_Admin_Settings
     public function render_text_field($args)
     {
         $options = get_option('pexpress_options', array());
-        $value = isset($options[$args['option_key']]) ? esc_attr($options[$args['option_key']]) : '';
-        echo '<input type="text" id="' . esc_attr($args['label_for']) . '" name="pexpress_options[' . esc_attr($args['option_key']) . ']" value="' . $value . '" class="regular-text" />';
+
+        // Handle nested option keys (e.g., 'email_config.from_name')
+        if (strpos($args['option_key'], '.') !== false) {
+            $keys = explode('.', $args['option_key']);
+            $value = $options;
+            foreach ($keys as $key) {
+                $value = isset($value[$key]) ? $value[$key] : '';
+            }
+            $value = esc_attr($value);
+            $name = 'pexpress_options[' . implode('][', $keys) . ']';
+        } else {
+            $value = isset($options[$args['option_key']]) ? esc_attr($options[$args['option_key']]) : '';
+            $name = 'pexpress_options[' . esc_attr($args['option_key']) . ']';
+        }
+
+        echo '<input type="text" id="' . esc_attr($args['label_for']) . '" name="' . $name . '" value="' . $value . '" class="regular-text" />';
         if (!empty($args['description'])) {
             echo '<p class="description">' . esc_html($args['description']) . '</p>';
         }
@@ -173,8 +644,22 @@ class PExpress_Admin_Settings
     public function render_checkbox_field($args)
     {
         $options = get_option('pexpress_options', array());
-        $checked = !empty($options[$args['option_key']]) ? 'checked' : '';
-        echo '<input type="checkbox" id="' . esc_attr($args['label_for']) . '" name="pexpress_options[' . esc_attr($args['option_key']) . ']" value="1" ' . $checked . ' />';
+
+        // Handle nested option keys (e.g., 'email_config.enable_email')
+        if (strpos($args['option_key'], '.') !== false) {
+            $keys = explode('.', $args['option_key']);
+            $value = $options;
+            foreach ($keys as $key) {
+                $value = isset($value[$key]) ? $value[$key] : '';
+            }
+            $checked = !empty($value) ? 'checked' : '';
+            $name = 'pexpress_options[' . implode('][', $keys) . ']';
+        } else {
+            $checked = !empty($options[$args['option_key']]) ? 'checked' : '';
+            $name = 'pexpress_options[' . esc_attr($args['option_key']) . ']';
+        }
+
+        echo '<input type="checkbox" id="' . esc_attr($args['label_for']) . '" name="' . $name . '" value="1" ' . $checked . ' />';
         if (!empty($args['description'])) {
             echo '<p class="description">' . esc_html($args['description']) . '</p>';
         }
@@ -187,7 +672,7 @@ class PExpress_Admin_Settings
     {
         $descriptions = array(
             'polar_hr' => __('Full access to assign orders and manage operations (Agency)', 'pexpress'),
-            'polar_delivery' => __('Can view and update delivery status for assigned orders (HR)', 'pexpress'),
+            'polar_delivery' => __('Can view and update delivery status for assigned orders (SR)', 'pexpress'),
             'polar_fridge' => __('Can view and mark fridge collection for assigned orders', 'pexpress'),
             'polar_distributor' => __('Can view and mark fulfillment for assigned orders', 'pexpress'),
             'polar_support' => __('Can view all orders and provide customer support', 'pexpress'),
@@ -209,9 +694,9 @@ class PExpress_Admin_Settings
         // Polar Express roles
         $polar_roles = array(
             'polar_hr' => __('Polar Agency', 'pexpress'),
-            'polar_delivery' => __('Polar HR', 'pexpress'),
+            'polar_delivery' => __('Polar SR', 'pexpress'),
             'polar_fridge' => __('Polar Fridge Provider', 'pexpress'),
-            'polar_distributor' => __('Polar Distributor', 'pexpress'),
+            'polar_distributor' => __('Polar Product Provider', 'pexpress'),
             'polar_support' => __('Polar Support', 'pexpress'),
         );
 
